@@ -127,7 +127,7 @@ public class Client {
 		 */
 		port = 3001;
 		host = "localhost";
-		clientId = "NEATforSPEED";
+		clientId = "championship2010";
 		verbose = false;
 		maxEpisodes = 1;
 		maxSteps = 0;

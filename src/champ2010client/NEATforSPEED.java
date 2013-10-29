@@ -20,7 +20,7 @@ public class NEATforSPEED extends Controller{
         Action action = new Action ();
 
         action.accelerate = 1;
-
+        action.gear = 1;
         
         return action;
 

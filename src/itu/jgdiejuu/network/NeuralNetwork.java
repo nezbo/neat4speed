@@ -556,7 +556,7 @@ public class NeuralNetwork {
 				}
 				
 				
-				Connection conX = new Connection(getIndex(from), getIndex(to), weight);
+				Connection conX = new Connection(getNode(from), getNode(to), weight);
 				getNodeFromId(from).getOutgoing().add(conX);	getNodeFromId(to).getIngoing().add(conX);
 				allConnections.add(conX);
 			}
@@ -566,7 +566,7 @@ public class NeuralNetwork {
 		printNetwork();
 	}
 	
-	private Node getIndex(int index){
+	private Node getNode(int index){
 		index--;
 		// is it an input node
 		if(index < this.inputNodes.size()) return inputNodes.get(index);

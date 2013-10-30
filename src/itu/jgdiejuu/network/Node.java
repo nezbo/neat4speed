@@ -24,7 +24,6 @@ public abstract class Node {
 			
 	public Node(ArrayList<Connection> ingoing, ArrayList<Connection> outgoing, int id, float biasValue) {
 		super();
-		this.value = value;
 		this.id = id;
 		this.biasValue = biasValue;
 	}

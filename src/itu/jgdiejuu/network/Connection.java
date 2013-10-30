@@ -3,22 +3,14 @@ package itu.jgdiejuu.network;
 
 public class Connection {
 
-	private NeuralNetwork nn;
+	//private NeuralNetwork nn;
 	private Node from;
 	private Node to;
 	private float weight;
 	
-	public Connection(int fromid, int toid, float weight, NeuralNetwork nn){
-		
-		this.nn = nn;
-		for(Node n : nn.getNodes()){
-			if(n.getId() == fromid){
-				this.from = n;
-			}
-			if(n.getId() == toid){
-				this.to = n;
-			}
-		}
+	public Connection(Node from, Node to, float weight){
+		this.from = from;
+		this.to = to;
 		this.weight = weight;
 	}
 	

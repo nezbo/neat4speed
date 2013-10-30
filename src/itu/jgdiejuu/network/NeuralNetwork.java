@@ -34,7 +34,7 @@ public class NeuralNetwork {
 	public int numberOfInputNodes = 0;
 	public int numberOfOutputNodes = 0;
 	
-	public void buildTwoTwoOneNetwork(){
+	/*public void buildTwoTwoOneNetwork(){
 		
 		numberOfHiddenLayers = 1;
 		
@@ -60,7 +60,7 @@ public class NeuralNetwork {
 		nodes.add(x4);
 		nodes.add(x5);
 		
-		Connection con1 = new Connection(1, 3, getNewWeight(), this);
+		Connection con1 = new Connection(nodes.get(0), nodes.get(2), getNewWeight());
 		Connection con2 = new Connection(1, 4, getNewWeight(), this);	
 		Connection con3 = new Connection(2, 3, getNewWeight(), this);
 		Connection con4 = new Connection(2, 4, getNewWeight(), this);
@@ -162,7 +162,7 @@ public class NeuralNetwork {
 		System.out.println("_________________________________Network initialized_________________________________");
 		printNetwork();
 
-	}
+	}*/
 
 
 	
@@ -556,7 +556,7 @@ public class NeuralNetwork {
 				}
 				
 				
-				Connection conX = new Connection(from, to, weight, this);
+				Connection conX = new Connection(getIndex(from), getIndex(to), weight);
 				getNodeFromId(from).getOutgoing().add(conX);	getNodeFromId(to).getIngoing().add(conX);
 				allConnections.add(conX);
 			}
@@ -564,6 +564,22 @@ public class NeuralNetwork {
 		} catch (FileNotFoundException e) {e.printStackTrace();}
 		
 		printNetwork();
+	}
+	
+	private Node getIndex(int index){
+		index--;
+		// is it an input node
+		if(index < this.inputNodes.size()) return inputNodes.get(index);
+		index -= inputNodes.size();
+		
+		// count through all layers until found
+		for(ArrayList<HiddenNode> layer : this.hiddenLayers){
+			if(index < layer.size()) return layer.get(index);
+			index -= layer.size();
+		}
+		
+		// then it must be an output node
+		return this.outputNodes.get(index);
 	}
 
 	public void saveNetwork(){

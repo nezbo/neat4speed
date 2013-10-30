@@ -25,9 +25,9 @@ import javax.swing.JPanel;
 public class NetworkCoach{
 	
 	private boolean errorFound = true;
-	private Float learningrate = 0.5f;
+	private Float learningrate = 0.05f;
 	private int errors = 0;
-	public float fitnessDeviation = 0.001f;
+	public float fitnessDeviation = 0.5f;
 	static InputManager im;
 	Font font = new Font("Verdana", Font.PLAIN, 20);
 	JFrame frame;
@@ -52,8 +52,7 @@ public class NetworkCoach{
 		frame.add(textLabel);
 		textLabel.setFont(font);
 		
-		nn = new NeuralNetwork();
-		nn.loadNetwork("testwork.txt");
+		nn = new NeuralNetwork("testwork.txt");
 		
 		
 		//nn.buildTwoOneNetwork();
@@ -76,7 +75,7 @@ public class NetworkCoach{
 		
 		System.out.println("------------------WINZ-----------------");
 		nn.saveNetwork();
-		nn.printNetwork();
+		System.out.println(nn);
 		
 	}
 	
@@ -103,7 +102,8 @@ public class NetworkCoach{
 			
 			if (!errorFound && network.isFit(dataset))		
 				break;	
-			
+			System.out.println(t + " iterations");
+		
 		}
 
 			System.out.println(t + " iterations");

@@ -2,115 +2,71 @@ package itu.jgdiejuu.network;
 
 import java.util.ArrayList;
 
-
-public abstract class Node {
-
+public class Node {
 	
-	protected float value = 0;
-	protected float biasValue;
+	public static double L = 1.0; // learning rate
 	
-	public float getBiasValue() {
-		return biasValue;
-	}
+	public ArrayList<Connection> conn_in, conn_out;
+	private double inputValue = 0.0;
+	private double outputValue = 0.0;
+	private double errorValue = 0.0;
+	private double bias = 1.0;
 
-	public void setBiasValue(float biasValue) {
-		this.biasValue = biasValue;
-	}
-
-	protected int id;
-	protected float error;
-
-	protected boolean normalized = false;
-			
-	public Node(ArrayList<Connection> ingoing, ArrayList<Connection> outgoing, int id, float biasValue) {
-		super();
-		this.id = id;
-		this.biasValue = biasValue;
+	public Node(double inititalBias){
+		bias = inititalBias;
+		conn_in = new ArrayList<Connection>();
+		conn_out = new ArrayList<Connection>();
 	}
 	
-	public abstract void activate();
-	public abstract ArrayList<Connection> getIngoing();
-	public abstract ArrayList<Connection> getOutgoing();
-	
-	public void addBiasValue(){
-		value += biasValue;
+	public void setInput(double input){
+		this.inputValue = input;
 	}
 	
-	public boolean isNormalized() {
-		return normalized;
+	public double getOutput(){
+		return outputValue;
 	}
-
-	public void setNormalized(boolean normalized) {
-		this.normalized = normalized;
+	
+	public double getError(){
+		return errorValue;
 	}
-
-	public float getValue() {
-		return value;
-	}
-
-	public void setValue(float value) {
-		this.value = value;
-	}
-
-	/**
-	 * Uses Sigmoid function to normalize.
-	 */
-	public void normalize(String method){
-//		System.out.println(method+"  answer="+1f / ( 1f +  Math.pow(Math.E, (-value))));
-		switch(method){
-		case "sigmoid": value = (float) (1f / ( 1f +  Math.pow(Math.E, (-value)))); break;
-		case "tanh": value = (float) Math.tanh(value); break;
-		default: throw new RuntimeException("Legal normalize method not given");
+	
+	public double forwardOperation(){
+		if(conn_in.size() == 0){ // input node
+			outputValue = inputValue;
+			return inputValue;
 		}
 		
-	}
-	
-	public void updateBias(float learningRate){
-//		System.out.println("update bias on node="+id+"  error="+error+"  learningrate="+learningRate);
-		biasValue = biasValue + (error * learningRate);
-	}
-
-	public int getId() {
-		return id;
-	}
-
-	public void setId(int id) {
-		this.id = id;
-	}
-	
-	public float getError() {
-		return error;
-	}
-
-	public void setError(float error) {
-		this.error = error;
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + id;
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Node other = (Node) obj;
-		if (id != other.id)
-			return false;
-		return true;
-	}
-
-	public void reset() {
-		value = 0;
-		error = 0;
+		double S = bias;
+		for(Connection c : conn_in){
+			S += c.getFromNode().forwardOperation() * c.getWeight();
+		}
 		
+		double a = 1.0/(1.0 + Math.pow(Math.E, -1.0 * S));
+		outputValue = a;
+		return a;
+	}
+	
+	public void computeError(double T){
+		double O = this.outputValue;
+		
+		if(conn_out.size() == 0){ // output node
+			errorValue = O*(1-O)*(T - O);
+			return;
+		}
+		// layer node (warning: requires next layer to be calculated first
+		double nextSum = 0.0;
+		for(Connection c : conn_out){
+			nextSum += c.getToNode().getError() * c.getWeight();
+		}
+		errorValue = O*(1-O) * nextSum;
+	}
+	
+	public void updateBias(){
+		double delta = Node.L*this.getError();
+		bias = bias + delta;
+	}
+
+	public double getBias() {
+		return bias;
 	}
 }

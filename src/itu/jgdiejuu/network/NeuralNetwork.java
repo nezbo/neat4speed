@@ -1,589 +1,193 @@
 package itu.jgdiejuu.network;
 
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 
-import javax.xml.bind.annotation.adapters.NormalizedStringAdapter;
-
-
 public class NeuralNetwork {
 
-	ArrayList <InputNode> inputNodes = new ArrayList <InputNode>();
-	ArrayList <ArrayList<HiddenNode>> hiddenLayers = new ArrayList <ArrayList<HiddenNode>>();
-	ArrayList <OutputNode> outputNodes = new ArrayList <OutputNode>();
+	public static int RESTARTS = 0;
+	public static int LIMIT = 10000; //Integer.MAX_VALUE;
+	public static boolean DEBUG = false;
 	
-	ArrayList <Connection> allConnections = new ArrayList <Connection>();
-	
-	ArrayList <Node> layerList = new ArrayList <Node>();
-	ArrayList <Node> nodes = new ArrayList <Node>();
-	Random r = new Random();
-	
-	public float fitnessDeviation = 0.001f;
-	public int numberOfLayers = 0;
-	public int numberOfHiddenLayers = 0;
-	public int numberOfInputNodes = 0;
-	public int numberOfOutputNodes = 0;
-	
-	/*public void buildTwoTwoOneNetwork(){
+	public static void main(String[] args){
 		
-		numberOfHiddenLayers = 1;
+		// create training pairs XOR
+		double[][] trainingInputs = new double[][]{new double[]{0,0},new double[]{1,0},new double[]{0,1},new double[]{1,1}};
+		double[][] trainingOutputs = new double[][]{new double[]{0},new double[]{1},new double[]{1},new double[]{0}};
 		
-		//2-2-1
-		InputNode x1 = new InputNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 1);
-		InputNode x2 = new InputNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 2);
-		inputNodes.add(x1);
-		inputNodes.add(x2);
+		int restarts = 0;
 		
-		ArrayList <HiddenNode> hiddenLayer1 = new ArrayList <HiddenNode>();
-		HiddenNode x3 = new HiddenNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 3, getNewBias());
-		HiddenNode x4 = new HiddenNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 4, getNewBias());
-		hiddenLayer1.add(x3);
-		hiddenLayer1.add(x4);
-		hiddenLayers.add(hiddenLayer1);
-		
-		OutputNode x5 = new OutputNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 5, getNewBias());
-		outputNodes.add(x5);
-		
-		nodes.add(x1);
-		nodes.add(x2);
-		nodes.add(x3);
-		nodes.add(x4);
-		nodes.add(x5);
-		
-		Connection con1 = new Connection(nodes.get(0), nodes.get(2), getNewWeight());
-		Connection con2 = new Connection(1, 4, getNewWeight(), this);	
-		Connection con3 = new Connection(2, 3, getNewWeight(), this);
-		Connection con4 = new Connection(2, 4, getNewWeight(), this);
-		x1.getOutgoing().add(con1);	x3.getIngoing().add(con1);
-		x1.getOutgoing().add(con2); x4.getIngoing().add(con2);
-		x2.getOutgoing().add(con3);	x3.getIngoing().add(con3);
-		x2.getOutgoing().add(con4); x4.getIngoing().add(con4); 
-		
-		
-		Connection con5 = new Connection(3, 5, getNewWeight(), this);
-		Connection con6 = new Connection(4, 5, getNewWeight(), this);
-		x3.getOutgoing().add(con5);	x5.getIngoing().add(con5);
-		x4.getOutgoing().add(con6); x5.getIngoing().add(con6); 
-		
-		allConnections.add(con1);
-		allConnections.add(con2);
-		allConnections.add(con3);
-		allConnections.add(con4);
-		allConnections.add(con5);
-		allConnections.add(con6);
-		
-		System.out.println("_________________________________Network initialized_________________________________");
-		printNetwork();
+		while(restarts <= RESTARTS){ // input,output,hidden,levels,outputValues
+			NeuralNetwork nn = new NeuralNetwork(2,1,2,1);
 
-	}
-
-	
-	public void buildTwoTwoTwoOneNetwork(){
-		
-		numberOfHiddenLayers = 2;
-		
-		//2-2-2-1
-		InputNode x1 = new InputNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 1);
-		InputNode x2 = new InputNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 2);
-		inputNodes.add(x1);
-		inputNodes.add(x2);
-		
-		ArrayList <HiddenNode> hiddenLayer1 = new ArrayList <HiddenNode>();
-		HiddenNode x3 = new HiddenNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 3, getNewBias());
-		HiddenNode x4 = new HiddenNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 4, getNewBias());
-		hiddenLayer1.add(x3);
-		hiddenLayer1.add(x4);
-		hiddenLayers.add(hiddenLayer1);
-		
-		ArrayList <HiddenNode> hiddenLayer2 = new ArrayList <HiddenNode>();
-		HiddenNode x5 = new HiddenNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 5, getNewBias());
-		HiddenNode x6 = new HiddenNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 6, getNewBias());
-		hiddenLayer2.add(x5);
-		hiddenLayer2.add(x6);
-		hiddenLayers.add(hiddenLayer2);
-		
-		OutputNode x7 = new OutputNode(new ArrayList <Connection>(), new ArrayList <Connection>(), 7, getNewBias());
-		outputNodes.add(x7);
-		
-		nodes.add(x1);
-		nodes.add(x2);
-		nodes.add(x3);
-		nodes.add(x4);
-		nodes.add(x5);
-		nodes.add(x6);
-		nodes.add(x7);
-		
-		Connection con1 = new Connection(1, 3, getNewWeight(), this);
-		Connection con2 = new Connection(1, 4, getNewWeight(), this);	
-		Connection con3 = new Connection(2, 3, getNewWeight(), this);
-		Connection con4 = new Connection(2, 4, getNewWeight(), this);
-		x1.getOutgoing().add(con1);	x3.getIngoing().add(con1);
-		x1.getOutgoing().add(con2); x4.getIngoing().add(con2);
-		x2.getOutgoing().add(con3);	x3.getIngoing().add(con3);
-		x2.getOutgoing().add(con4); x4.getIngoing().add(con4); 
-		
-		
-		Connection con5 = new Connection(3, 5, getNewWeight(), this);
-		Connection con6 = new Connection(3, 6, getNewWeight(), this);	
-		Connection con7 = new Connection(4, 5, getNewWeight(), this);
-		Connection con8 = new Connection(4, 6, getNewWeight(), this);
-		x3.getOutgoing().add(con5);	x5.getIngoing().add(con5);
-		x3.getOutgoing().add(con6); x6.getIngoing().add(con6);
-		x4.getOutgoing().add(con7);	x5.getIngoing().add(con7);
-		x4.getOutgoing().add(con8); x6.getIngoing().add(con8); 
-		
-		Connection con9 = new Connection(5, 7, getNewWeight(), this);
-		Connection con10 = new Connection(6, 7, getNewWeight(), this);
-		x5.getOutgoing().add(con9);	x7.getIngoing().add(con9);
-		x6.getOutgoing().add(con10); x7.getIngoing().add(con10); 
-		
-
-		allConnections.add(con1);
-		allConnections.add(con2);
-		allConnections.add(con3);
-		allConnections.add(con4);
-		allConnections.add(con5);
-		allConnections.add(con6);
-		allConnections.add(con7);
-		allConnections.add(con8);
-		allConnections.add(con9);
-		allConnections.add(con10);
-		
-		System.out.println("_________________________________Network initialized_________________________________");
-		printNetwork();
-
-	}*/
-
-
-	
-	public void run(List<Integer> inputs){
-
-		if(inputs.size() != inputNodes.size()){
-			System.out.println("number of inputNodes does not match problem-input");
-			throw new IllegalArgumentException();
-		}
-		
-		//set value for each inputNode and add them to openList
-		for(int i = 0; i < inputs.size(); i++){
-			inputNodes.get(i).setValue(inputs.get(i));
-			layerList.add(inputNodes.get(i));
-		}
-		
-		//activate, addBias and normalize
-		while(!layerList.isEmpty()){
-			activateLayer();
-			normalizeLayer("sigmoid"); //tahn or sigmoid supported atm
-		}
-		
-		//roundOutputs();
-		
-	//	System.out.println();
-	//	printNetwork();
-	}
-	
-	public void resetNodes(){
-		for(Node n: nodes){
-			n.reset();
-		}
-	}
-
-	private void normalizeLayer(String method) {
-		for(Node n: layerList){
-			n.normalize(method);
-		}
-	}
-
-	private void activateLayer() {
-		
-		ArrayList <Node> nextLayerList = new ArrayList<Node>();
-		
-		//for each node in openList
-		for(Node n: layerList){
-			n.activate();
+			int i = 0;
+			boolean allCorrect = false;
 			
-			if (n instanceof InputNode){
-				for(Connection c: ((InputNode)n).getOutgoing()){
-					nextLayerList.add(c.getTo());
-				}
-			} else if (n instanceof HiddenNode){
-				for(Connection c: ((HiddenNode)n).getOutgoing()){
-					nextLayerList.add(c.getTo());
-				}
-			}
-		}
-		
-		ArrayList <Node> unique = new ArrayList<Node>();
-		
-		for(Node n: nextLayerList){
-			if(!unique.contains(n)){
-				unique.add(n);
-			}
-		}
-		
-		for(Node n: unique){
-			n.addBiasValue();
-		}
-		
-		layerList = unique;
-		
-	}
-
-	private boolean outputNormalized() {
-
-		for(OutputNode out: outputNodes){
-			if(!out.isNormalized())
-				return false;
-		}
-		return true;
-	}
-
-	private float getNewWeight() {
-		
-		//return (float) Math.random();
-		return (r.nextFloat() * 2) - 1;
-	}
-
-	public void backpropagate(List<Integer> list, float learningrate) {
-
-		int i = 0;
-		
-		//compute error for outputs
-		for(OutputNode out : outputNodes){
-			out.computeError(list.get(i));
-	//		System.out.print(outputs.get(i)+",");
-			i++;
-		}
-		//and adjust weight for its ingoing connections
-		for(OutputNode out : outputNodes){
-			for(Connection c: out.getIngoing()){
-				c.adjustWeight(learningrate);
-			}
-		}
-		
-		for(int j = numberOfHiddenLayers -1; j >= 0; j--){
-			//compute error for hidden
-			for(HiddenNode hid : hiddenLayers.get(j)){
-				hid.computeError();
-			}
-			//and adjust weight for its ingoing connections
-			for(HiddenNode hid : hiddenLayers.get(j)){
-				for(Connection c: hid.getIngoing()){
-					c.adjustWeight(learningrate);
-				}
-			}
-		}
-/*
-		for(Connection c : allConnections){
-			c.adjustWeight(learningrate);
-		}
-*/		
-		for(Node n : nodes){
-			if (n instanceof OutputNode || n instanceof HiddenNode){
-				n.updateBias(learningrate);
-			} 
-			n.reset();
-		}
-		
-		
-	}
-	
-	private float getNewBias() {
-		
-		return (r.nextFloat() * 2) - 1; //-1 - 1
-		//return r.nextFloat(); //0 - 1
-	}
-
-	public void roundOutputs(){
-		for(OutputNode o : outputNodes){
-			o.roundValue();
-		}
-	}
-	
-	public void printNetwork(){
-		
-		for(InputNode in: inputNodes){
-			System.out.println("inputnode="+in.getId()+" (bias="+in.getBiasValue()+")  ");
-			for(Connection c: in.getOutgoing()){
-/*				System.out.println("From node "+c.getFrom().getId());
-				System.out.println(" value="+c.getFrom().getValue());
-				System.out.println(" bias="+c.getFrom().getBiasValue());
-				System.out.println(" To node"+c.getTo().getId());
-				System.out.println(" weight="+c.getWeight());
-				System.out.println(" outputValue="+c.getTo().getValue());
-*/				
-				System.out.println("From node "+c.getFrom().getId()+" (value="+c.getFrom().getValue()+" bias="+c.getFrom().getBiasValue()+") To node"+c.getTo().getId()+" (weight="+c.getWeight()+" bias="+c.getTo().getBiasValue()+")  outputValue="+c.getTo().getValue());
+			while(!allCorrect && i < LIMIT){ // stopping condition
+				System.out.println("----- Running Training "+i+" -----");
+				allCorrect = nn.runTraining( trainingInputs
+											,trainingOutputs) == trainingInputs.length;
+				i++;
 			}
 			
-		}
-		System.out.println();
-		
-		for(ArrayList<HiddenNode> inLayer: hiddenLayers){
-			for(HiddenNode hn: inLayer){
-				System.out.println("hiddennode="+hn.getId()+" (bias="+hn.getBiasValue()+")  ");
-				for(Connection c: hn.getOutgoing()){
-/*					System.out.println("From node "+c.getFrom().getId());
-					System.out.println(" value="+c.getFrom().getValue());
-					System.out.println(" bias="+c.getFrom().getBiasValue());
-					System.out.println(" To node"+c.getTo().getId());
-					System.out.println(" weight="+c.getWeight());
-					System.out.println(" outputValue="+c.getTo().getValue());
-*/					
-					System.out.println("From node "+c.getFrom().getId()+" (value="+c.getFrom().getValue()+" bias="+c.getFrom().getBiasValue()+") To node"+c.getTo().getId()+" (weight="+c.getWeight()+" bias="+c.getTo().getBiasValue()+")  outputValue="+c.getTo().getValue());
+			if(allCorrect){
+				System.out.println("Complete after "+i+" runs.");
+				System.out.println(nn.toString());
+				break;
+			}else{
+				restarts++;
+				if(restarts <= RESTARTS){
+					System.out.println("Restart #"+restarts);
+				}else{
+					System.out.println("Max restarts exceeded.");
 				}
+				
 			}
-			System.out.println();
 		}
-		
-		for(OutputNode on: outputNodes){
-			System.out.println("outputnode="+on.getId()+" (bias="+on.getBiasValue()+")  ");
-		}
-		System.out.println();
-		
-		for(Connection c : allConnections){
-			System.out.println("From node "+c.getFrom().getId()+" (value="+c.getFrom().getValue()+" bias="+c.getFrom().getBiasValue()+") To node"+c.getTo().getId()+" (weight="+c.getWeight()+" bias="+c.getTo().getBiasValue()+")  outputValue="+c.getTo().getValue());
-		}
-		
 	}
-
-	public boolean isFit(HashMap<List<Integer>, List<Integer>> dataset) {
+	
+	// -------------------------------------
+	
+	private ArrayList<Node> inputNodes, outputNodes;
+	private ArrayList<ArrayList<Node>> hiddenLayers;
+	private ArrayList<Connection> connections;
+	
+	public NeuralNetwork(int numInput, int numOutput, int numHidden, int numLayers){
+		Random rand = new Random();
 		
-//		System.out.println("fit");
+		// create tree
+		inputNodes = new ArrayList<Node>();
+		hiddenLayers = new ArrayList<ArrayList<Node>>(numLayers);
+		outputNodes = new ArrayList<Node>();
+		connections = new ArrayList<Connection>();
 		
-		boolean isFit = true;
-		
-		int counter = 0;
-		
-		for(List<Integer> inputs: dataset.keySet()){
-			
-			List<Integer> outputs = dataset.get(inputs);
-			
-			run(inputs);
-		
-			for(int i = 0; i < outputNodes.size(); i++){
-				float out = outputNodes.get(i).getValue();
-//				if(out != outputs.get(i)){
-//					errorFound = true;
-//				}
-				System.out.println("in="+inputs);
-				System.out.println("out="+out+"  outputs.get(i)="+ outputs.get(i));
-				//if(Math.round(out) != outputs.get(i)){ 
-				if(out > outputs.get(i) + fitnessDeviation || out < outputs.get(i) - fitnessDeviation){
-					isFit = false;
-					counter++;
-					System.out.println("error in value"+out);
+		for(int i = 0; i < numInput; i++) inputNodes.add(new Node(0.0));
+		for(int i = 0; i < numOutput; i++) outputNodes.add(new Node(randStart(rand)));
+		for(int i = 0; i < numLayers; i++){
+			hiddenLayers.add(new ArrayList<Node>(numHidden));
+			for(int j = 0; j < numHidden; j++){
+				Node curNode = new Node(randStart(rand));
+				hiddenLayers.get(i).add(curNode);
+				// hook up to previous
+				if(i == 0){ // first layer to input
+					for(int k = 0; k < numInput; k++){
+						connections.add(new Connection(inputNodes.get(k), curNode, randStart(rand)));
+					}
+				}else{ // rest to layer before
+					for(int k = 0; k < numHidden; k++){
+						connections.add(new Connection(hiddenLayers.get(i-1).get(k), curNode, randStart(rand)));
+					}
+				}
+				// to output
+				if(i == numLayers-1){
+					for(int k = 0; k < numOutput; k++){
+						connections.add(new Connection(curNode, outputNodes.get(k), randStart(rand)));
+					}
 				}
 			}
 		}
-		System.out.println("fit?="+isFit+" still "+counter+" errors left");
-		
-		return isFit;
 	}
 	
-	public Float[] analyze(Float[] inputs){
-		
-		if(inputs.length != inputNodes.size()){
-			System.out.println("number of inputNodes does not match problem-input");
-			throw new IllegalArgumentException();
-		}
-		
-		//set value for each inputNode and add them to openList
-		for(int i = 0; i < inputs.length; i++){
-			inputNodes.get(i).setValue(inputs[i]);
-			layerList.add(inputNodes.get(i));
-		}
-		
-		//activate, addBias and normalize
-		while(!layerList.isEmpty()){
-			activateLayer();
-			normalizeLayer("sigmoid"); //tahn or sigmoid supported atm
-		}
-		
-		//roundOutputs();
-		
-		Float[] solution = new Float[outputNodes.size()];
-		for(int i = 0; i < outputNodes.size(); i++){
-			solution[i] = outputNodes.get(i).getValue();
-		}
-		
-		return solution;
-		
-	}
-	
-	public void loadNetwork(String fileName){
-		
+	public NeuralNetwork(String fileName){
+		Random rand = new Random();		
 		System.out.println("LOAD");
-		
-		boolean biasValue = false;
-		boolean input = true;
-		ArrayList <Float> biasValues = new ArrayList <Float>();
 		
 		try {		
 			Scanner scan = new Scanner(new File("networks/"+fileName));
 			String topology = scan.nextLine();
 			Scanner topologyScan = new Scanner(topology);
 			
-			//find number of layers and fill biasValues with values
+			hiddenLayers = new ArrayList<ArrayList<Node>>();
 			while(topologyScan.hasNext()){
 				String next = topologyScan.next();
+				String[] biases = next.substring(1,next.length()-2).split(",");
 				
-				if(next.equals("["))
-					biasValue =true;
-				else if(next.equals("]"))
-					biasValue = false;
-				else if(isInteger(next) && !biasValue){
-					numberOfLayers++;
-					if(input){
-						numberOfInputNodes = Integer.parseInt(next);
-						input = false;
+				ArrayList<Node> curLayer = new ArrayList<Node>();
+				
+				for(String s : biases){
+					if(isDouble(s)){
+						curLayer.add(new Node(Double.parseDouble(s)));
+					}else{
+						curLayer.add(new Node(randStart(rand)));
 					}
+					
 				}
-				else if(isFloat(next) && biasValue)
-					biasValues.add(Float.parseFloat(next));
-				else if(next.equals("r"))
-					biasValues.add(getNewBias());
-			}
 				
-			
-			numberOfHiddenLayers = numberOfLayers - 2;
-			
-/*			System.out.println("topology="+topology);
-			System.out.println("numberOfLayers="+numberOfLayers);
-			System.out.println("numberOfInputNodes="+numberOfInputNodes);
-			System.out.println("numberOfHiddenLayers="+numberOfHiddenLayers);
-			System.out.println("biasValues="+biasValues);
-*/			
-			Scanner newScan = new Scanner(topology);
-			int id = 1;
-			
-			for(int i = 0; i < 3; i++){
-				//for input nodes
-				if(i == 0){
-					int numberOfInputs = newScan.nextInt();	
-					for(int j = 0; j < numberOfInputs; j++){
-						InputNode in = new InputNode(new ArrayList <Connection>(), new ArrayList <Connection>(), id);
-						inputNodes.add(in);
-						nodes.add(in);
-						id++;
-					}
-				//for output nodes
-				}else if(i == 2){
-
-					numberOfOutputNodes = 0;
-					
-					while(true){
-						String next = newScan.next();
-						System.out.println("--NEXT="+next+"  i="+i);
-						
-						if(next.equals("["))
-							biasValue =true;
-						else if(next.equals("]"))
-							biasValue = false;
-						else if(isInteger(next) && !biasValue){
-							numberOfOutputNodes = Integer.parseInt(next);
-							System.out.println("FOUND!! numberOfOutputNodes="+numberOfOutputNodes+"  i="+i);
-							break;
-						}
-					}
-					
-					for(int j = 0; j < numberOfOutputNodes; j++){
-						OutputNode on = new OutputNode(new ArrayList <Connection>(), new ArrayList <Connection>(), id,  biasValues.get(id-(numberOfInputNodes+1)));
-						outputNodes.add(on);
-						nodes.add(on);
-						id++;
-					}
-				
-				//for hidden nodes in all hidden layers	
+				if(inputNodes == null){
+					inputNodes = curLayer;
 				}else{
-					for(int j = 0; j < numberOfHiddenLayers; j++){
-						
-						int numberOfHiddenNodes = 0;
-						
-						while(true){
-							String next = newScan.next();
-							System.out.println("--NEXT="+next+"  i="+i);
-							
-							
-							if(next.equals("["))
-								biasValue =true;
-							else if(next.equals("]"))
-								biasValue = false;
-							else if(isInteger(next) && !biasValue){
-								numberOfHiddenNodes = Integer.parseInt(next);
-								System.out.println("FOUND!! numberOfHiddenNodes="+numberOfHiddenNodes+"  i="+i);
-								break;
-							}
-						}
-
-						ArrayList <HiddenNode> curHiddenLayer = new ArrayList <HiddenNode>();
-						hiddenLayers.add(curHiddenLayer);
-						for(int k = 0; k < numberOfHiddenNodes; k++){
-							System.out.println("id-(numberOfInputNodes+1)="+(id-(numberOfInputNodes+1)));
-							HiddenNode hn = new HiddenNode(new ArrayList <Connection>(), new ArrayList <Connection>(), id, biasValues.get(id-(numberOfInputNodes+1)));
-							curHiddenLayer.add(hn);
-							nodes.add(hn);
-							id++;
-						}
-					}
+					hiddenLayers.add(curLayer);
 				}
 			}
+			// move last layer to output
+			outputNodes = hiddenLayers.remove(hiddenLayers.size()-1);
 
 			//for all connections
 			while(scan.hasNextLine()){
 
 				String con = scan.nextLine();
 				Scanner conScan = new Scanner(con);
-				boolean randomWeight = false;
 				
 				int from = conScan.nextInt();
 				int to = conScan.nextInt();
 				String w = conScan.next();
-				float weight = 0;
+				double weight = 0;
 				
-				if(isFloat(w)){
-					weight = Float.parseFloat(w);
+				if(isDouble(w)){
+					weight = Double.parseDouble(w);
 				}else if(w.equals("r")){
-					weight = getNewWeight();
+					weight = randStart(rand);
 				}
 				
 				
-				Connection conX = new Connection(getNode(from), getNode(to), weight);
-				getNodeFromId(from).getOutgoing().add(conX);	getNodeFromId(to).getIngoing().add(conX);
-				allConnections.add(conX);
+				connections.add(new Connection(getNode(from), getNode(to), weight));
+				
+				conScan.close();
 			}
+			
+			scan.close();
+			topologyScan.close();
 					
 		} catch (FileNotFoundException e) {e.printStackTrace();}
 		
-		printNetwork();
+		System.out.println(this.toString());
 	}
 	
 	private Node getNode(int index){
 		index--;
-		// is it an input node
-		if(index < this.inputNodes.size()) return inputNodes.get(index);
+		if(index < inputNodes.size()) return inputNodes.get(index);
 		index -= inputNodes.size();
 		
-		// count through all layers until found
-		for(ArrayList<HiddenNode> layer : this.hiddenLayers){
+		for(ArrayList<Node> layer : hiddenLayers){
 			if(index < layer.size()) return layer.get(index);
 			index -= layer.size();
 		}
 		
-		// then it must be an output node
-		return this.outputNodes.get(index);
+		return outputNodes.get(index);
 	}
-
-	public void saveNetwork(){
 	
+	private int getIndex(Node n){
+		int index = 0;
+		for(int i = 0; i < inputNodes.size(); i++) if(inputNodes.get(i) == n) return index+i;
+		index += inputNodes.size();
+		for(int i = 0; i < hiddenLayers.size(); i++){
+			for(int j = 0; j < hiddenLayers.get(i).size(); j++){
+				if(hiddenLayers.get(i).get(j) == n) return index+i;
+			}
+			index += hiddenLayers.get(i).size();
+		}
+		for(int i = 0; i < outputNodes.size(); i++) if(outputNodes.get(i) == n) return index+i;
+		return -1;
+	}
+	
+	public void saveNetwork(){
+		
 	int numberOfFiles = new File("networks").list().length;
 	System.out.println("numberOfFiles = "+numberOfFiles);
 	String name = "savedNetwork"+numberOfFiles;
@@ -591,24 +195,24 @@ public class NeuralNetwork {
 			try {
 				BufferedWriter writer = new BufferedWriter(new FileWriter("networks/"+name+".txt"));
 			
-				String output = numberOfInputNodes+"";
+				String output = inputNodes.size()+"";
 				
-				for(int i = 0; i < numberOfHiddenLayers; i++){
+				for(int i = 0; i < hiddenLayers.size(); i++){
 					output+=" "+hiddenLayers.get(i).size()+" [ ";
 					for(int j = 0; j < hiddenLayers.get(i).size(); j++){
-						output+=hiddenLayers.get(i).get(j).biasValue+" ";
+						output+=hiddenLayers.get(i).get(j).getBias()+" ";
 					}
 					output+="]";
 				}
 			
-				output += " "+numberOfOutputNodes+" [ ";
+				output += " "+outputNodes.size()+" [ ";
 				for(int i = 0; i < outputNodes.size(); i++){
-					output+=outputNodes.get(i).getBiasValue()+" ";
+					output+=outputNodes.get(i).getBias()+" ";
 				}
 				output += " ]";
 				
-				for(Connection c: allConnections){
-					output+="\n"+c.getFrom().getId()+" "+c.getTo().getId()+" "+c.getWeight();
+				for(Connection c: connections){
+					output+="\n"+getIndex(c.getFromNode())+" "+getIndex(c.getToNode())+" "+c.getWeight();
 				}
 				writer.write(output);
 						
@@ -618,36 +222,104 @@ public class NeuralNetwork {
 		
 	}
 	
-	public ArrayList<Node> getNodes(){
-		return nodes;
+	private boolean isDouble( String input ) {
+	    try {
+	        Double.parseDouble( input );
+	        return true;
+	    }
+	    catch( Exception e ) {
+	        return false;
+	    }
 	}
 	
-	public Node getNodeFromId(int id){
-		for(Node n: nodes){
-			if(n.getId() == id){
-				return n;
-			}
+	private double randStart(Random rand){
+		return (rand.nextDouble()*2.0)-1.0;
+	}
+	
+	public double[] getOutput(double[] parseInput) {
+		double[] result = new double[outputNodes.size()];
+		for(int i = 0; i < result.length; i++){
+			result[i] = outputNodes.get(i).forwardOperation();
 		}
-		return null;
+		return result;
 	}
 	
-	public boolean isInteger( String input ) {
-	    try {
-	        Integer.parseInt( input );
-	        return true;
-	    }
-	    catch( Exception e ) {
-	        return false;
-	    }
+	public boolean runTraining(double[] trainingInput, double[] trainingOutput){
+		// set inputs
+		for(int j = 0; j < inputNodes.size(); j++){
+			inputNodes.get(j).setInput(trainingInput[j]);
+		}
+		
+		if(DEBUG) System.out.println("Output=");
+		boolean match = true;
+		for(int j = 0; j < outputNodes.size(); j++){
+			// forward operation
+			double result = outputNodes.get(j).forwardOperation();
+			int round = (int)Math.round(result);
+			int target = (int)Math.round(trainingOutput[j]);
+			
+			if(DEBUG) System.out.println("\t"+j+": "+result+" - Target= "+trainingOutput[j]);
+			if(DEBUG) System.out.println("\t"+j+"(int): "+round+" - Target(int)= "+target);
+			
+			match = match && (target == round);
+		}
+	
+		if(DEBUG) System.out.println("Result Match: " + match);
+		
+		// output error
+		for(int j = 0; j < outputNodes.size(); j++){
+			double T = trainingOutput[j];
+			outputNodes.get(j).computeError(T);
+		}
+		for(int j = hiddenLayers.size()-1; j >= 0; j--){
+			for(Node n : hiddenLayers.get(j)) n.computeError(0);
+		}
+		
+		// update weights
+		for(Connection c : connections) c.updateWeight();
+		
+		// update bias
+		for(int j = 0; j < hiddenLayers.size(); j++){
+			for(Node n : hiddenLayers.get(j)) n.updateBias();
+		}
+		for(Node n : outputNodes) n.updateBias();
+		
+		if(DEBUG) System.out.println(this);
+		
+		return match;
+	}
+
+	public int runTraining(double[][] trainingInput, double[][] trainingOutput) {
+		int numCorrect = 0;
+		for(int i = 0; i < trainingInput.length; i++){
+			boolean match = runTraining(trainingInput[i], trainingOutput[i]);
+			if(match) numCorrect++;
+		}
+		if(DEBUG) System.out.println(numCorrect+" out of "+trainingInput.length+" correct.");
+		return numCorrect;
 	}
 	
-	public boolean isFloat( String input ) {
-	    try {
-	        Float.parseFloat( input );
-	        return true;
-	    }
-	    catch( Exception e ) {
-	        return false;
-	    }
+	private void nodeToBuilder(Node n, StringBuilder builder){
+		builder.append(n+": bias="+n.getBias()+"\n");
+		for(Connection c : n.conn_out){
+			builder.append("\t-> "+c.getToNode()+" = "+c.getWeight()+"\n");
+		}
+	}
+	
+	@Override
+	public String toString(){
+		StringBuilder builder = new StringBuilder();
+		builder.append("Input Nodes:\n");
+		for(Node n : inputNodes) nodeToBuilder(n,builder);
+		
+		for(int i = 0; i < hiddenLayers.size(); i++){
+			builder.append("\nLayer "+(i+1)+":\n");
+			for(Node n : hiddenLayers.get(i)) nodeToBuilder(n,builder);
+		}
+
+		builder.append("\nOutput Nodes:\n");
+		for(Node n : outputNodes) nodeToBuilder(n,builder);
+		builder.append("\n");
+		return builder.toString();
 	}
 }

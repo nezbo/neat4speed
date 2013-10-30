@@ -1,47 +1,38 @@
 package itu.jgdiejuu.network;
 
-
 public class Connection {
+	
+	private Node fromNode, toNode;
+	private double weight;
 
-	//private NeuralNetwork nn;
-	private Node from;
-	private Node to;
-	private float weight;
-	
-	public Connection(Node from, Node to, float weight){
-		this.from = from;
-		this.to = to;
+	public Connection(Node fromNode, Node toNode, double weight){
 		this.weight = weight;
+		this.fromNode = fromNode;
+		this.toNode = toNode;
+		
+		// adding to nodes
+		fromNode.conn_out.add(this);
+		toNode.conn_in.add(this);
 	}
 	
-	public Node getFrom() {
-		return from;
-	}
-	public void setFrom(Node from) {
-		this.from = from;
-	}
-	public Node getTo() {
-		return to;
-	}
-	public void setTo(Node to) {
-		this.to = to;
-	}
-	public float getWeight() {
+	public double getWeight(){
 		return weight;
 	}
-	public void setWeight(float weight) {
-		this.weight = weight;
+	
+	public void changeWeight(double amount){
+		weight += amount;
 	}
 	
-	public void activate(float nodeValue){
-		float toNextValue = (nodeValue * weight) + to.getValue();
-		to.setValue(toNextValue);	
+	public Node getFromNode(){
+		return fromNode;
 	}
 	
-	public void adjustWeight(float learningrate){
-		
-		float weightAdjustment = learningrate * to.getError() * from.getValue();
-	//	System.out.println("weightAdjustment = "+weightAdjustment);
-		weight = weight + weightAdjustment; //learningrate not needed?
+	public Node getToNode(){
+		return toNode;
+	}
+
+	public void updateWeight() {
+		double delta = Node.L*toNode.getError()*fromNode.getOutput();
+		this.changeWeight(delta);
 	}
 }

@@ -236,7 +236,16 @@ public class NeuralNetwork {
 		return (rand.nextDouble()*2.0)-1.0;
 	}
 	
-	public double[] getOutput(double[] parseInput) {
+	public double[] getOutput(double[] input) {
+		// wrong input size?
+		if(input.length != inputNodes.size()) return null;
+		
+		// set input
+		for(int i = 0; i < inputNodes.size(); i++){
+			inputNodes.get(i).setInput(input[i]);
+		}
+		
+		// get output
 		double[] result = new double[outputNodes.size()];
 		for(int i = 0; i < result.length; i++){
 			result[i] = outputNodes.get(i).forwardOperation();
@@ -297,6 +306,17 @@ public class NeuralNetwork {
 		}
 		if(DEBUG) System.out.println(numCorrect+" out of "+trainingInput.length+" correct.");
 		return numCorrect;
+	}
+	
+	public boolean isFit(double[][] trainingInput, double[][] trainingOutput){
+		// check all inputs and see if they comply 
+		// with the current network and weights.
+		// Most importantly no backpropagation.
+		boolean allCorrect = true;
+		for(int i = 0; i < trainingInput.length; i++){
+			allCorrect = allCorrect && runTraining(trainingInput[i], trainingOutput[i]);
+		}
+		return allCorrect;
 	}
 	
 	private void nodeToBuilder(Node n, StringBuilder builder){

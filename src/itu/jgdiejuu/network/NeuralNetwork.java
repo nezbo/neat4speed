@@ -6,14 +6,16 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
 public class NeuralNetwork {
-
-	public static int RESTARTS = 10;
-	public static int LIMIT = 10000; //Integer.MAX_VALUE;
-	public static boolean DEBUG = false;
+	
+    public static int RESTARTS = 10;
+    public static int LIMIT = 10000; //Integer.MAX_VALUE;
+    public static boolean DEBUG = false;
 	
 	public static void main(String[] args){
 		
@@ -58,49 +60,41 @@ public class NeuralNetwork {
 	
 	private static double MARGIN = 0.05;
 	
-	private ArrayList<Node> inputNodes, outputNodes = null;
-	private ArrayList<ArrayList<Node>> hiddenLayers;
+	private ArrayList<Node> nodes;
 	private ArrayList<Connection> connections;
 	
-	private NeuralNetwork(){
-		inputNodes = new ArrayList<Node>();
-		hiddenLayers = new ArrayList<ArrayList<Node>>();
-		outputNodes = new ArrayList<Node>();
-	}
-	
-	public NeuralNetwork(int numInput, int numOutput, int numHidden, int numLayers){
+	public NeuralNetwork(int numInput, int numOutput, int... hiddenLayers){
+		connections = new ArrayList<Connection>();
 		Random rand = new Random();
 		
 		// create tree
-		inputNodes = new ArrayList<Node>();
-		hiddenLayers = new ArrayList<ArrayList<Node>>(numLayers);
-		outputNodes = new ArrayList<Node>();
-		connections = new ArrayList<Connection>();
+		nodes = new ArrayList<Node>();
 		
-		for(int i = 0; i < numInput; i++) inputNodes.add(new Node(0.0));
-		for(int i = 0; i < numOutput; i++) outputNodes.add(new Node(randStart(rand)));
-		for(int i = 0; i < numLayers; i++){
-			hiddenLayers.add(new ArrayList<Node>(numHidden));
-			for(int j = 0; j < numHidden; j++){
-				Node curNode = new Node(randStart(rand));
-				hiddenLayers.get(i).add(curNode);
+		for(int i = 0; i < numInput; i++) nodes.add(new Node(0.0, NodeType.INPUT));
+		for(int i = 0; i < numOutput; i++) nodes.add(new Node(randStart(rand), NodeType.OUTPUT));
+		int index = numInput + numOutput;
+		for(int i = 0; i < hiddenLayers.length; i++){
+			for(int j = 0; j < hiddenLayers[i]; j++){
+				Node curNode = new Node(randStart(rand), NodeType.HIDDEN);
+				nodes.add(curNode);
 				// hook up to previous
 				if(i == 0){ // first layer to input
 					for(int k = 0; k < numInput; k++){
-						connections.add(new Connection(inputNodes.get(k), curNode, randStart(rand)));
+						connections.add(new Connection(nodes.get(k), curNode, randStart(rand)));
 					}
 				}else{ // rest to layer before
-					for(int k = 0; k < numHidden; k++){
-						connections.add(new Connection(hiddenLayers.get(i-1).get(k), curNode, randStart(rand)));
+					for(int k = 0; k < hiddenLayers[i-1]; k++){
+						connections.add(new Connection(nodes.get(index-k), curNode, randStart(rand)));
 					}
 				}
 				// to output
-				if(i == numLayers-1){
+				if(i == hiddenLayers.length-1){
 					for(int k = 0; k < numOutput; k++){
-						connections.add(new Connection(curNode, outputNodes.get(k), randStart(rand)));
+						connections.add(new Connection(curNode, nodes.get(numInput+k), randStart(rand)));
 					}
 				}
 			}
+			index += hiddenLayers[i];
 		}
 	}
 	
@@ -113,31 +107,28 @@ public class NeuralNetwork {
 			String topology = scan.nextLine();
 			Scanner topologyScan = new Scanner(topology);
 			
-			hiddenLayers = new ArrayList<ArrayList<Node>>();
+			nodes = new ArrayList<Node>();
 			connections = new ArrayList<Connection>();
+			int curLayer = 0;
+			int firstLength = -1;
+			int lastLength = -1;
 			while(topologyScan.hasNext()){
 				String next = topologyScan.next();
 				String[] biases = next.substring(1,next.length()-1).split(",");
-				
-				ArrayList<Node> curLayer = new ArrayList<Node>();
+				if(firstLength == -1) firstLength = biases.length;
+				lastLength = biases.length;
+				NodeType type = (curLayer == 0) ? NodeType.INPUT : NodeType.HIDDEN;
 				
 				for(String s : biases){
 					if(isDouble(s)){
-						curLayer.add(new Node(Double.parseDouble(s)));
+						nodes.add(new Node(Double.parseDouble(s),type));
 					}else{
-						curLayer.add(new Node(randStart(rand)));
+						nodes.add(new Node(randStart(rand), type));
 					}
-					
 				}
 				
-				if(inputNodes == null){
-					inputNodes = curLayer;
-				}else{
-					hiddenLayers.add(curLayer);
-				}
+				curLayer++;
 			}
-			// move last layer to output
-			outputNodes = hiddenLayers.remove(hiddenLayers.size()-1);
 
 			//for all connections
 			while(scan.hasNextLine()){
@@ -163,6 +154,16 @@ public class NeuralNetwork {
 				conScan.close();
 			}
 			
+			// move output nodes to after input
+			ArrayList<Node> outputs = new ArrayList<Node>(lastLength);
+			for(int i = 0; i < lastLength; i++) outputs.add(nodes.remove(nodes.size()-1));
+			Collections.reverse(outputs);
+			for(int i = 0; i < outputs.size(); i++){
+				outputs.get(i).setType(NodeType.OUTPUT);
+				nodes.add(firstLength+i, outputs.get(i));
+			}
+			
+			// close
 			scan.close();
 			topologyScan.close();
 					
@@ -208,18 +209,41 @@ public class NeuralNetwork {
 	}
 
 	public double[] getOutput(double[] input) {
+		int numInput = getNumInput();
 		// wrong input size?
-		if(input.length != inputNodes.size()) return null;
+		if(input.length != numInput) return null;
 		
 		// set input
-		for(int i = 0; i < inputNodes.size(); i++){
-			inputNodes.get(i).setInput(input[i]);
+		for(int i = 0; i < input.length; i++){
+			nodes.get(i).setInput(input[i]);
 		}
 		
 		// get output
-		double[] result = new double[outputNodes.size()];
+		double[] result = new double[getNumOutput()];
 		for(int i = 0; i < result.length; i++){
-			result[i] = outputNodes.get(i).forwardOperation();
+			result[i] = nodes.get(numInput + i).forwardOperation();
+		}
+		return result;
+	}
+	
+	public int getNumInput(){
+		int result = 0;
+		for(int i = 0; i < nodes.size(); i++){
+			if(nodes.get(i).getType() == NodeType.INPUT){
+				result++;
+			}else{
+				break;
+			}
+		}
+		return result;
+	}
+	
+	public int getNumOutput(){
+		int result = 0;
+		for(int i = 0; i < nodes.size(); i++){
+			if(nodes.get(i).getType() == NodeType.OUTPUT){
+				result++;
+			}
 		}
 		return result;
 	}
@@ -284,39 +308,6 @@ public class NeuralNetwork {
 			allCorrect = allCorrect && runTraining(trainingInput[i], trainingOutput[i]);
 		}
 		return allCorrect;
-	}
-	
-	public int getNumNodes(){
-		int result = inputNodes.size() + outputNodes.size();
-		for(ArrayList<Node> l : hiddenLayers) result += l.size();
-		return result;
-	}
-	
-	public int getNumConnections(){
-		return connections.size();
-	}
-
-	public int[] getSize(){
-		int[] result = new int[2 + hiddenLayers.size()];
-		result[0] = inputNodes.size();
-		for(int i = 1; i <= hiddenLayers.size(); i++) result[i] = hiddenLayers.get(i-1).size();
-		result[result.length-1] = outputNodes.size();
-		return result;
-	}
-	
-	public void addInputNode(){
-		inputNodes.add(new Node(0.0));
-	}
-	
-	public void addHiddenNode(int layer, double bias){
-		// check if new layer
-		while(layer >= hiddenLayers.size()) hiddenLayers.add(new ArrayList<Node>());
-		
-		hiddenLayers.get(layer).add(new Node(bias));
-	}
-	
-	public void addOutputNode(double bias){
-		outputNodes.add(new Node(bias));
 	}
 	
 	private void nodeToBuilder(Node n, StringBuilder builder){

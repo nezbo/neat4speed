@@ -11,7 +11,7 @@ import java.util.Scanner;
 
 public class NeuralNetwork {
 
-	public static int RESTARTS = 0;
+	public static int RESTARTS = 10;
 	public static int LIMIT = 10000; //Integer.MAX_VALUE;
 	public static boolean DEBUG = false;
 	
@@ -24,20 +24,21 @@ public class NeuralNetwork {
 		int restarts = 0;
 		
 		while(restarts <= RESTARTS){ // input,output,hidden,levels,outputValues
-			NeuralNetwork nn = new NeuralNetwork(2,1,2,1);
+			NeuralNetwork nn = new NeuralNetwork("xor.txt");
+			//NeuralNetwork nn = new NeuralNetwork(2,1,2,1);
 
 			int i = 0;
 			boolean allCorrect = false;
 			
 			while(!allCorrect && i < LIMIT){ // stopping condition
 				System.out.println("----- Running Training "+i+" -----");
-				allCorrect = nn.runTraining( trainingInputs
-											,trainingOutputs) == trainingInputs.length;
+				nn.runTraining( trainingInputs,trainingOutputs);
+				allCorrect = nn.isFit(trainingInputs, trainingOutputs);
 				i++;
 			}
 			
 			if(allCorrect){
-				System.out.println("Complete after "+i+" runs.");
+				System.out.println("\nComplete after "+i+" runs and "+restarts+" restart"+(restarts == 1 ? "." : "s.")+"\n");
 				System.out.println(nn.toString());
 				break;
 			}else{
@@ -54,7 +55,7 @@ public class NeuralNetwork {
 	
 	// -------------------------------------
 	
-	private ArrayList<Node> inputNodes, outputNodes;
+	private ArrayList<Node> inputNodes, outputNodes = null;
 	private ArrayList<ArrayList<Node>> hiddenLayers;
 	private ArrayList<Connection> connections;
 	
@@ -104,9 +105,10 @@ public class NeuralNetwork {
 			Scanner topologyScan = new Scanner(topology);
 			
 			hiddenLayers = new ArrayList<ArrayList<Node>>();
+			connections = new ArrayList<Connection>();
 			while(topologyScan.hasNext()){
 				String next = topologyScan.next();
-				String[] biases = next.substring(1,next.length()-2).split(",");
+				String[] biases = next.substring(1,next.length()-1).split(",");
 				
 				ArrayList<Node> curLayer = new ArrayList<Node>();
 				
@@ -143,8 +145,9 @@ public class NeuralNetwork {
 					weight = Double.parseDouble(w);
 				}else if(w.equals("r")){
 					weight = randStart(rand);
+				}else{
+					System.err.println("Invalid Connection Weight: "+w);
 				}
-				
 				
 				connections.add(new Connection(getNode(from), getNode(to), weight));
 				
@@ -178,7 +181,7 @@ public class NeuralNetwork {
 		index += inputNodes.size();
 		for(int i = 0; i < hiddenLayers.size(); i++){
 			for(int j = 0; j < hiddenLayers.get(i).size(); j++){
-				if(hiddenLayers.get(i).get(j) == n) return index+i;
+				if(hiddenLayers.get(i).get(j) == n) return index+j;
 			}
 			index += hiddenLayers.get(i).size();
 		}
@@ -320,9 +323,9 @@ public class NeuralNetwork {
 	}
 	
 	private void nodeToBuilder(Node n, StringBuilder builder){
-		builder.append(n+": bias="+n.getBias()+"\n");
+		builder.append((1+getIndex(n))+": bias="+n.getBias()+"\n");
 		for(Connection c : n.conn_out){
-			builder.append("\t-> "+c.getToNode()+" = "+c.getWeight()+"\n");
+			builder.append("\t-> "+(1+getIndex(c.getToNode()))+" = "+c.getWeight()+"\n");
 		}
 	}
 	

@@ -24,9 +24,11 @@ public class NeuralNetwork {
 		double[][] trainingOutputs = new double[][]{new double[]{0},new double[]{1},new double[]{1},new double[]{0}};
 		
 		int restarts = 0;
+		NeuralNetwork nn = new NeuralNetwork("structureTest.txt");
+		return;
 		
-		while(restarts <= RESTARTS){ // input,output,hidden,levels,outputValues
-			NeuralNetwork nn = new NeuralNetwork("xor.txt");
+		/*while(restarts <= RESTARTS){ // input,output,hidden,levels,outputValues
+			NeuralNetwork nn = new NeuralNetwork("structureTest.txt");
 			//NeuralNetwork nn = new NeuralNetwork(2,1,2,1);
 
 			int i = 0;
@@ -53,7 +55,7 @@ public class NeuralNetwork {
 				}
 				
 			}
-		}
+		}*/
 	}
 	
 	// -------------------------------------
@@ -61,7 +63,13 @@ public class NeuralNetwork {
 	private static double MARGIN = 0.05;
 	
 	private ArrayList<Node> nodes;
+	private List<Node> inputNodes;
+	private List<Node> outputNodes;
 	private ArrayList<Connection> connections;
+	
+	// for backprop
+	private ArrayList<ArrayList<Node>> layerz;
+	private int lastNumConn = 0;
 	
 	public NeuralNetwork(int numInput, int numOutput, int... hiddenLayers){
 		connections = new ArrayList<Connection>();
@@ -71,8 +79,11 @@ public class NeuralNetwork {
 		nodes = new ArrayList<Node>();
 		
 		for(int i = 0; i < numInput; i++) nodes.add(new Node(0.0, NodeType.INPUT));
+		inputNodes = nodes.subList(0, nodes.size());
 		for(int i = 0; i < numOutput; i++) nodes.add(new Node(randStart(rand), NodeType.OUTPUT));
+		outputNodes = nodes.subList(numInput, nodes.size());
 		int index = numInput + numOutput;
+		
 		for(int i = 0; i < hiddenLayers.length; i++){
 			for(int j = 0; j < hiddenLayers[i]; j++){
 				Node curNode = new Node(randStart(rand), NodeType.HIDDEN);
@@ -163,6 +174,10 @@ public class NeuralNetwork {
 				nodes.add(firstLength+i, outputs.get(i));
 			}
 			
+			// make sublists
+			inputNodes = nodes.subList(0, firstLength);
+			outputNodes = nodes.subList(firstLength, firstLength + lastLength);
+			
 			// close
 			scan.close();
 			topologyScan.close();
@@ -173,6 +188,8 @@ public class NeuralNetwork {
 	}
 
 	public void saveNetwork(){
+	// get layer structure
+	ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
 		
 	int numberOfFiles = new File("networks").list().length;
 	System.out.println("SAVE");
@@ -182,7 +199,7 @@ public class NeuralNetwork {
 				BufferedWriter writer = new BufferedWriter(new FileWriter("networks/"+name+".txt"));
 				StringBuilder builder = new StringBuilder();
 			
-				ArrayList<ArrayList<Node>> layers = new ArrayList<ArrayList<Node>>(10);
+				ArrayList<List<Node>> layers = new ArrayList<List<Node>>(10);
 				layers.add(inputNodes);
 				layers.addAll(hiddenLayers);
 				layers.add(outputNodes);
@@ -204,14 +221,11 @@ public class NeuralNetwork {
 						
 				writer.close();
 			} catch (IOException e) {e.printStackTrace();}
-		
-		
 	}
 
 	public double[] getOutput(double[] input) {
-		int numInput = getNumInput();
 		// wrong input size?
-		if(input.length != numInput) return null;
+		if(input.length != inputNodes.size()) return null;
 		
 		// set input
 		for(int i = 0; i < input.length; i++){
@@ -219,36 +233,17 @@ public class NeuralNetwork {
 		}
 		
 		// get output
-		double[] result = new double[getNumOutput()];
+		double[] result = new double[outputNodes.size()];
 		for(int i = 0; i < result.length; i++){
-			result[i] = nodes.get(numInput + i).forwardOperation();
-		}
-		return result;
-	}
-	
-	public int getNumInput(){
-		int result = 0;
-		for(int i = 0; i < nodes.size(); i++){
-			if(nodes.get(i).getType() == NodeType.INPUT){
-				result++;
-			}else{
-				break;
-			}
-		}
-		return result;
-	}
-	
-	public int getNumOutput(){
-		int result = 0;
-		for(int i = 0; i < nodes.size(); i++){
-			if(nodes.get(i).getType() == NodeType.OUTPUT){
-				result++;
-			}
+			result[i] = outputNodes.get(i).forwardOperation();
 		}
 		return result;
 	}
 	
 	public boolean runTraining(double[] trainingInput, double[] trainingOutput){
+		// get layer structure
+		ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
+		
 		// set inputs
 		for(int j = 0; j < inputNodes.size(); j++){
 			inputNodes.get(j).setInput(trainingInput[j]);
@@ -332,6 +327,11 @@ public class NeuralNetwork {
 	}
 	
 	private Node getNode(int index){
+		return nodes.get(index-1);
+		
+		// get layer structure
+		/*ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
+		
 		index--;
 		if(index < inputNodes.size()) return inputNodes.get(index);
 		index -= inputNodes.size();
@@ -341,10 +341,13 @@ public class NeuralNetwork {
 			index -= layer.size();
 		}
 		
-		return outputNodes.get(index);
+		return outputNodes.get(index);*/
 	}
 	
 	private int getIndex(Node n){
+		// get layer structure
+		ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
+		
 		int index = 1;
 		for(int i = 0; i < inputNodes.size(); i++) if(inputNodes.get(i) == n) return index+i;
 		index += inputNodes.size();
@@ -358,8 +361,62 @@ public class NeuralNetwork {
 		return -1;
 	}
 	
+	private ArrayList<ArrayList<Node>> UpdateLayers() {
+		if(connections.size() != lastNumConn){
+			CalculateLayers();
+		}
+		return layerz;
+	}
+	
+	private void CalculateLayers() {
+		ArrayList<ArrayList<Node>> layers = new ArrayList<ArrayList<Node>>();		
+		List<Node> hiddenNodes = nodes.subList(inputNodes.size()+outputNodes.size(), nodes.size()); // NO EDITING!
+		
+		layers.add(new ArrayList<Node>());
+		
+		// take one node at a time and calculate dependencies for already added nodes
+		for(Node n : hiddenNodes){
+			// must be between highest under and lowest over
+			int highestUnder = -1;
+			int lowestOver = layers.size();
+			
+			for(Connection o : n.conn_out){
+				int position = getLayer(layers, o.getToNode());
+				if(position != -1 && (lowestOver == -1 || position < lowestOver)) 
+					lowestOver = position;
+			}
+			for(Connection i : n.conn_in){
+				int position = getLayer(layers, i.getFromNode());
+				if(position != -1 && (highestUnder == -1 || position > highestUnder)) 
+					highestUnder = position;
+			}
+			
+			// if under == over insert new layer between
+			if(highestUnder == lowestOver){
+				ArrayList<Node> newLayer = new ArrayList<Node>();
+				newLayer.add(n);
+				layers.add(highestUnder+1, newLayer);
+			}else{ // else put in under + 1
+				if(highestUnder == layers.size() - 1) layers.add(new ArrayList<Node>());
+				layers.get(highestUnder+1).add(n);
+			}
+		}
+		layerz = layers;
+		lastNumConn = connections.size();
+	}
+	
+	private int getLayer(ArrayList<ArrayList<Node>> layers, Node target){
+		for(int i = 0; i < layers.size(); i++){
+			if(layers.get(i).contains(target)) return i;
+		}
+		return -1;
+	}
+
 	@Override
 	public String toString(){
+		// get layer structure
+		ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
+		
 		StringBuilder builder = new StringBuilder();
 		builder.append("Input Nodes:\n");
 		for(Node n : inputNodes) nodeToBuilder(n,builder);

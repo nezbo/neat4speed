@@ -28,7 +28,7 @@ public class NeuralNetwork {
 			//NeuralNetwork nn = new NeuralNetwork(2,1,2,1);
 
 			int i = 0;
-			boolean allCorrect = false;
+			boolean allCorrect = nn.isFit(trainingInputs, trainingOutputs);
 			
 			while(!allCorrect && i < LIMIT){ // stopping condition
 				System.out.println("----- Running Training "+i+" -----");
@@ -40,6 +40,7 @@ public class NeuralNetwork {
 			if(allCorrect){
 				System.out.println("\nComplete after "+i+" runs and "+restarts+" restart"+(restarts == 1 ? "." : "s.")+"\n");
 				System.out.println(nn.toString());
+				nn.saveNetwork();
 				break;
 			}else{
 				restarts++;
@@ -54,6 +55,8 @@ public class NeuralNetwork {
 	}
 	
 	// -------------------------------------
+	
+	private static double MARGIN = 0.05;
 	
 	private ArrayList<Node> inputNodes, outputNodes = null;
 	private ArrayList<ArrayList<Node>> hiddenLayers;
@@ -176,7 +179,7 @@ public class NeuralNetwork {
 	}
 	
 	private int getIndex(Node n){
-		int index = 0;
+		int index = 1;
 		for(int i = 0; i < inputNodes.size(); i++) if(inputNodes.get(i) == n) return index+i;
 		index += inputNodes.size();
 		for(int i = 0; i < hiddenLayers.size(); i++){
@@ -192,32 +195,32 @@ public class NeuralNetwork {
 	public void saveNetwork(){
 		
 	int numberOfFiles = new File("networks").list().length;
-	System.out.println("numberOfFiles = "+numberOfFiles);
+	System.out.println("SAVE");
 	String name = "savedNetwork"+numberOfFiles;
 	
 			try {
 				BufferedWriter writer = new BufferedWriter(new FileWriter("networks/"+name+".txt"));
+				StringBuilder builder = new StringBuilder();
 			
-				String output = inputNodes.size()+"";
+				ArrayList<ArrayList<Node>> layers = new ArrayList<ArrayList<Node>>(10);
+				layers.add(inputNodes);
+				layers.addAll(hiddenLayers);
+				layers.add(outputNodes);
 				
-				for(int i = 0; i < hiddenLayers.size(); i++){
-					output+=" "+hiddenLayers.get(i).size()+" [ ";
-					for(int j = 0; j < hiddenLayers.get(i).size(); j++){
-						output+=hiddenLayers.get(i).get(j).getBias()+" ";
+				for(int i = 0; i < layers.size(); i++){
+					builder.append("[");
+					for(int j = 0; j < layers.get(i).size(); j++){
+						builder.append(layers.get(i).get(j).getBias()+",");
 					}
-					output+="]";
+					builder.deleteCharAt(builder.length()-1);
+					builder.append("] ");
 				}
-			
-				output += " "+outputNodes.size()+" [ ";
-				for(int i = 0; i < outputNodes.size(); i++){
-					output+=outputNodes.get(i).getBias()+" ";
-				}
-				output += " ]";
+				builder.deleteCharAt(builder.length()-1);
 				
 				for(Connection c: connections){
-					output+="\n"+getIndex(c.getFromNode())+" "+getIndex(c.getToNode())+" "+c.getWeight();
+					builder.append("\n"+getIndex(c.getFromNode())+" "+getIndex(c.getToNode())+" "+c.getWeight());
 				}
-				writer.write(output);
+				writer.write(builder.toString());
 						
 				writer.close();
 			} catch (IOException e) {e.printStackTrace();}
@@ -267,13 +270,9 @@ public class NeuralNetwork {
 		for(int j = 0; j < outputNodes.size(); j++){
 			// forward operation
 			double result = outputNodes.get(j).forwardOperation();
-			int round = (int)Math.round(result);
-			int target = (int)Math.round(trainingOutput[j]);
+			double target = trainingOutput[j];
 			
-			if(DEBUG) System.out.println("\t"+j+": "+result+" - Target= "+trainingOutput[j]);
-			if(DEBUG) System.out.println("\t"+j+"(int): "+round+" - Target(int)= "+target);
-			
-			match = match && (target == round);
+			match = match && (target + MARGIN >= result && target - MARGIN <= result);
 		}
 	
 		if(DEBUG) System.out.println("Result Match: " + match);
@@ -323,9 +322,9 @@ public class NeuralNetwork {
 	}
 	
 	private void nodeToBuilder(Node n, StringBuilder builder){
-		builder.append((1+getIndex(n))+": bias="+n.getBias()+"\n");
+		builder.append(getIndex(n)+": bias="+n.getBias()+"\n");
 		for(Connection c : n.conn_out){
-			builder.append("\t-> "+(1+getIndex(c.getToNode()))+" = "+c.getWeight()+"\n");
+			builder.append("\t-> "+getIndex(c.getToNode())+" = "+c.getWeight()+"\n");
 		}
 	}
 	

@@ -62,6 +62,12 @@ public class NeuralNetwork {
 	private ArrayList<ArrayList<Node>> hiddenLayers;
 	private ArrayList<Connection> connections;
 	
+	private NeuralNetwork(){
+		inputNodes = new ArrayList<Node>();
+		hiddenLayers = new ArrayList<ArrayList<Node>>();
+		outputNodes = new ArrayList<Node>();
+	}
+	
 	public NeuralNetwork(int numInput, int numOutput, int numHidden, int numLayers){
 		Random rand = new Random();
 		
@@ -164,34 +170,7 @@ public class NeuralNetwork {
 		
 		System.out.println(this.toString());
 	}
-	
-	private Node getNode(int index){
-		index--;
-		if(index < inputNodes.size()) return inputNodes.get(index);
-		index -= inputNodes.size();
-		
-		for(ArrayList<Node> layer : hiddenLayers){
-			if(index < layer.size()) return layer.get(index);
-			index -= layer.size();
-		}
-		
-		return outputNodes.get(index);
-	}
-	
-	private int getIndex(Node n){
-		int index = 1;
-		for(int i = 0; i < inputNodes.size(); i++) if(inputNodes.get(i) == n) return index+i;
-		index += inputNodes.size();
-		for(int i = 0; i < hiddenLayers.size(); i++){
-			for(int j = 0; j < hiddenLayers.get(i).size(); j++){
-				if(hiddenLayers.get(i).get(j) == n) return index+j;
-			}
-			index += hiddenLayers.get(i).size();
-		}
-		for(int i = 0; i < outputNodes.size(); i++) if(outputNodes.get(i) == n) return index+i;
-		return -1;
-	}
-	
+
 	public void saveNetwork(){
 		
 	int numberOfFiles = new File("networks").list().length;
@@ -227,21 +206,7 @@ public class NeuralNetwork {
 		
 		
 	}
-	
-	private boolean isDouble( String input ) {
-	    try {
-	        Double.parseDouble( input );
-	        return true;
-	    }
-	    catch( Exception e ) {
-	        return false;
-	    }
-	}
-	
-	private double randStart(Random rand){
-		return (rand.nextDouble()*2.0)-1.0;
-	}
-	
+
 	public double[] getOutput(double[] input) {
 		// wrong input size?
 		if(input.length != inputNodes.size()) return null;
@@ -321,11 +286,85 @@ public class NeuralNetwork {
 		return allCorrect;
 	}
 	
+	public int getNumNodes(){
+		int result = inputNodes.size() + outputNodes.size();
+		for(ArrayList<Node> l : hiddenLayers) result += l.size();
+		return result;
+	}
+	
+	public int getNumConnections(){
+		return connections.size();
+	}
+
+	public int[] getSize(){
+		int[] result = new int[2 + hiddenLayers.size()];
+		result[0] = inputNodes.size();
+		for(int i = 1; i <= hiddenLayers.size(); i++) result[i] = hiddenLayers.get(i-1).size();
+		result[result.length-1] = outputNodes.size();
+		return result;
+	}
+	
+	public void addInputNode(){
+		inputNodes.add(new Node(0.0));
+	}
+	
+	public void addHiddenNode(int layer, double bias){
+		// check if new layer
+		while(layer >= hiddenLayers.size()) hiddenLayers.add(new ArrayList<Node>());
+		
+		hiddenLayers.get(layer).add(new Node(bias));
+	}
+	
+	public void addOutputNode(double bias){
+		outputNodes.add(new Node(bias));
+	}
+	
 	private void nodeToBuilder(Node n, StringBuilder builder){
 		builder.append(getIndex(n)+": bias="+n.getBias()+"\n");
 		for(Connection c : n.conn_out){
 			builder.append("\t-> "+getIndex(c.getToNode())+" = "+c.getWeight()+"\n");
 		}
+	}
+	
+	private boolean isDouble( String input ) {
+	    try {
+	        Double.parseDouble( input );
+	        return true;
+	    }
+	    catch( Exception e ) {
+	        return false;
+	    }
+	}
+	
+	private double randStart(Random rand){
+		return (rand.nextDouble()*2.0)-1.0;
+	}
+	
+	private Node getNode(int index){
+		index--;
+		if(index < inputNodes.size()) return inputNodes.get(index);
+		index -= inputNodes.size();
+		
+		for(ArrayList<Node> layer : hiddenLayers){
+			if(index < layer.size()) return layer.get(index);
+			index -= layer.size();
+		}
+		
+		return outputNodes.get(index);
+	}
+	
+	private int getIndex(Node n){
+		int index = 1;
+		for(int i = 0; i < inputNodes.size(); i++) if(inputNodes.get(i) == n) return index+i;
+		index += inputNodes.size();
+		for(int i = 0; i < hiddenLayers.size(); i++){
+			for(int j = 0; j < hiddenLayers.get(i).size(); j++){
+				if(hiddenLayers.get(i).get(j) == n) return index+j;
+			}
+			index += hiddenLayers.get(i).size();
+		}
+		for(int i = 0; i < outputNodes.size(); i++) if(outputNodes.get(i) == n) return index+i;
+		return -1;
 	}
 	
 	@Override

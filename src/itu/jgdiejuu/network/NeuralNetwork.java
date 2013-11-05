@@ -11,11 +11,21 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
+/**
+ * The class encapsulates the content of an Artificial Neural-Network and
+ * provides methods necessary for training it with supervised learning by
+ * backpropagation, aswell as methods for application within a NEAT evolution
+ * context. The class is capable of loading from a file and saving a
+ * (possibly changed version) aswell.
+ * 
+ * @author Emil
+ *
+ */
 public class NeuralNetwork {
 	
-    public static int RESTARTS = 10;
-    public static int LIMIT = 10000; //Integer.MAX_VALUE;
-    public static boolean DEBUG = false;
+    public static int RESTARTS = 10; // The maximum number of restarts in the demo training.
+    public static int LIMIT = 10; // The maximum number of iterations of the training set in the demo training.
+    public static boolean DEBUG = false; // Toggle debug output to console.
 	
 	public static void main(String[] args){
 		
@@ -24,10 +34,8 @@ public class NeuralNetwork {
 		double[][] trainingOutputs = new double[][]{new double[]{0},new double[]{1},new double[]{1},new double[]{0}};
 		
 		int restarts = 0;
-		NeuralNetwork nn = new NeuralNetwork("structureTest.txt");
-		return;
 		
-		/*while(restarts <= RESTARTS){ // input,output,hidden,levels,outputValues
+		while(restarts <= RESTARTS){ // input,output,hidden,levels,outputValues
 			NeuralNetwork nn = new NeuralNetwork("structureTest.txt");
 			//NeuralNetwork nn = new NeuralNetwork(2,1,2,1);
 
@@ -52,25 +60,34 @@ public class NeuralNetwork {
 					System.out.println("Restart #"+restarts);
 				}else{
 					System.out.println("Max restarts exceeded.");
+					nn.saveNetwork();
 				}
-				
 			}
-		}*/
+		}
 	}
 	
 	// -------------------------------------
 	
-	private static double MARGIN = 0.05;
+	private static double MARGIN = 0.05;// The maximum deviation from the wanted value in supervised learning.
 	
-	private ArrayList<Node> nodes;
-	private List<Node> inputNodes;
-	private List<Node> outputNodes;
-	private ArrayList<Connection> connections;
+	private ArrayList<Node> nodes; // All nodes in the network; first input, output and then hidden nodes.
+	private List<Node> inputNodes; // A sublist of the input nodes.
+	private List<Node> outputNodes; // A sublist of the output nodes.
+	private ArrayList<Connection> connections; // All connections in the network.
 	
-	// for backprop
-	private ArrayList<ArrayList<Node>> layerz;
-	private int lastNumConn = 0;
+	private ArrayList<ArrayList<Node>> layerz; // An ordering of the nodes in minimum number of layers for easly visualization and saving.
+	private int lastNumConn = 0; // The number of connections at last update of layers, to know when to update.
 	
+	/**
+	 * Creates a Neural-Network with the specified number of nodes in input, output and
+	 * an unlimited number of layers. The network will be created fully connected, with
+	 * each node one one layer connected to all nodes in the next and initially random
+	 * biases.
+	 * 
+	 * @param numInput The number of input nodes.
+	 * @param numOutput The number of output nodes.
+	 * @param hiddenLayers One number for each hidden layer specifying how many hidden nodes that layer should have.
+	 */
 	public NeuralNetwork(int numInput, int numOutput, int... hiddenLayers){
 		connections = new ArrayList<Connection>();
 		Random rand = new Random();
@@ -109,6 +126,12 @@ public class NeuralNetwork {
 		}
 	}
 	
+	/**
+	 * Loads the Neural-Network from the specified file.
+	 * 
+	 * @param fileName The file with all information of the network 
+	 * to build. Located in the networks\ folder.
+	 */
 	public NeuralNetwork(String fileName){
 		Random rand = new Random();		
 		System.out.println("LOAD");
@@ -187,13 +210,18 @@ public class NeuralNetwork {
 		System.out.println(this.toString());
 	}
 
+	/**
+	 * Saves the network in a file in the \networks\ folder and a running
+	 * number.
+	 */
 	public void saveNetwork(){
 	// get layer structure
 	ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
 		
 	int numberOfFiles = new File("networks").list().length;
-	System.out.println("SAVE");
+	
 	String name = "savedNetwork"+numberOfFiles;
+	System.out.println("SAVE ("+name+".txt)");
 	
 			try {
 				BufferedWriter writer = new BufferedWriter(new FileWriter("networks/"+name+".txt"));
@@ -223,6 +251,14 @@ public class NeuralNetwork {
 			} catch (IOException e) {e.printStackTrace();}
 	}
 
+	/**
+	 * Calculates the output of the network with the given input
+	 * applied to the input nodes. No modification to the network
+	 * is performed.
+	 * @param input An array containing the input values for each input node.
+	 * @return An array of output values, one for each output node.
+	 * Null if wrong number of input values.
+	 */
 	public double[] getOutput(double[] input) {
 		// wrong input size?
 		if(input.length != inputNodes.size()) return null;
@@ -240,6 +276,13 @@ public class NeuralNetwork {
 		return result;
 	}
 	
+	/**
+	 * Performs supervised training using backpropagation on the network with the
+	 * given input and expected output pair for error calculation.
+	 * @param trainingInput An array containing an input value for each input node.
+	 * @param trainingOutput An array containing an expected output value for each output node.
+	 * @return True if the networks gives the correct output for all output nodes within MARGIN of the target.
+	 */
 	public boolean runTraining(double[] trainingInput, double[] trainingOutput){
 		// get layer structure
 		ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
@@ -284,6 +327,13 @@ public class NeuralNetwork {
 		return match;
 	}
 
+	/**
+	 * Performs supervised training using backpropagation on the network the the 
+	 * given training set.
+	 * @param trainingInput An array of training input values.
+	 * @param trainingOutput An array of training output values.
+	 * @return The number of correctly calculated training pairs.
+	 */
 	public int runTraining(double[][] trainingInput, double[][] trainingOutput) {
 		int numCorrect = 0;
 		for(int i = 0; i < trainingInput.length; i++){
@@ -294,6 +344,14 @@ public class NeuralNetwork {
 		return numCorrect;
 	}
 	
+	/**
+	 * Runs all the traning pairs through the network WITHOUT any modification
+	 * to the network, to see if all are calculated correctly with the current
+	 * structure.
+	 * @param trainingInput An array of training input values.
+	 * @param trainingOutput An array of training output values.
+	 * @return True if all training pairs are calculated correctly, else false.
+	 */
 	public boolean isFit(double[][] trainingInput, double[][] trainingOutput){
 		// check all inputs and see if they comply 
 		// with the current network and weights.
@@ -305,6 +363,7 @@ public class NeuralNetwork {
 		return allCorrect;
 	}
 	
+	// Adds the information of the current node to the StringBuilder.
 	private void nodeToBuilder(Node n, StringBuilder builder){
 		builder.append(getIndex(n)+": bias="+n.getBias()+"\n");
 		for(Connection c : n.conn_out){
@@ -312,6 +371,7 @@ public class NeuralNetwork {
 		}
 	}
 	
+	// True if the content of the String matches a double.
 	private boolean isDouble( String input ) {
 	    try {
 	        Double.parseDouble( input );
@@ -322,28 +382,17 @@ public class NeuralNetwork {
 	    }
 	}
 	
+	// Creates a random value between -1.0 and 1.0 using the given Random object.
 	private double randStart(Random rand){
 		return (rand.nextDouble()*2.0)-1.0;
 	}
 	
+	// Gets the node at the given index. BEFORE output nodes 
 	private Node getNode(int index){
 		return nodes.get(index-1);
-		
-		// get layer structure
-		/*ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
-		
-		index--;
-		if(index < inputNodes.size()) return inputNodes.get(index);
-		index -= inputNodes.size();
-		
-		for(ArrayList<Node> layer : hiddenLayers){
-			if(index < layer.size()) return layer.get(index);
-			index -= layer.size();
-		}
-		
-		return outputNodes.get(index);*/
 	}
 	
+	// Gets the (1-based) index of a given node in the "nodes" array.
 	private int getIndex(Node n){
 		// get layer structure
 		ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
@@ -361,6 +410,7 @@ public class NeuralNetwork {
 		return -1;
 	}
 	
+	// Updates the layers model if necessary.
 	private ArrayList<ArrayList<Node>> UpdateLayers() {
 		if(connections.size() != lastNumConn){
 			CalculateLayers();
@@ -368,6 +418,7 @@ public class NeuralNetwork {
 		return layerz;
 	}
 	
+	// Groups the nodes in legal layers and updates the saved structure.
 	private void CalculateLayers() {
 		ArrayList<ArrayList<Node>> layers = new ArrayList<ArrayList<Node>>();		
 		List<Node> hiddenNodes = nodes.subList(inputNodes.size()+outputNodes.size(), nodes.size()); // NO EDITING!
@@ -405,6 +456,7 @@ public class NeuralNetwork {
 		lastNumConn = connections.size();
 	}
 	
+	// Gets the layer index that a given node is contained in, or -1 of not found.
 	private int getLayer(ArrayList<ArrayList<Node>> layers, Node target){
 		for(int i = 0; i < layers.size(); i++){
 			if(layers.get(i).contains(target)) return i;

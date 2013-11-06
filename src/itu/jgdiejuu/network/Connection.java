@@ -4,15 +4,30 @@ public class Connection {
 	
 	private Node fromNode, toNode;
 	private double weight;
+	private boolean active;
 
-	public Connection(Node fromNode, Node toNode, double weight){
+	public Connection(Node fromNode, Node toNode, double weight, boolean active){
 		this.weight = weight;
 		this.fromNode = fromNode;
 		this.toNode = toNode;
 		
-		// adding to nodes
-		fromNode.conn_out.add(this);
-		toNode.conn_in.add(this);
+		this.setActive(active);
+	}
+	
+	public void setActive(boolean activate){
+		active = activate;
+		if(activate){
+			// adding to nodes
+			fromNode.conn_out.add(this);
+			toNode.conn_in.add(this);
+		}else{
+			fromNode.conn_out.remove(this);
+			toNode.conn_in.remove(this);
+		}
+	}
+	
+	public boolean isActive(){
+		return active;
 	}
 	
 	public double getWeight(){

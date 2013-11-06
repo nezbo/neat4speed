@@ -135,7 +135,7 @@ public class SimpleDriver extends Controller{
 	}
 
 	public Action control(SensorModel sensors){
-		System.out.println("sensors="+sensors);
+		//System.out.println("sensors="+sensors);
 		// check if car is currently stuck
 		if ( Math.abs(sensors.getAngleToTrackAxis()) > stuckAngle )
 	    {

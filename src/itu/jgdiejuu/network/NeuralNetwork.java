@@ -225,6 +225,28 @@ public class NeuralNetwork {
 	}
 
 	/**
+	 * Creates a new Neural-Network around a list of Nodes and Connections using
+	 * these Nodes. The Nodes must be ordered in INPUT -> OUTPUT -> HIDDEN
+	 * @param nodes An ArrayList containing all Nodes in the Network.
+	 * @param connections An ArrayList containing all Connections to those nodes.
+	 */
+	private NeuralNetwork(ArrayList<Node> nodes, ArrayList<Connection> connections){
+		this.nodes = nodes;
+		this.connections = connections;
+		
+		// find input and output subLists
+		int indexEnd = -1;
+		for(int i = 0; i < nodes.size(); i++) 
+			if(nodes.get(i).getType() != NodeType.INPUT){
+				this.inputNodes = nodes.subList(0, i);
+				indexEnd = i;
+			}
+		for(int i = indexEnd; i < nodes.size(); i++) 
+			if(nodes.get(i).getType() == NodeType.HIDDEN ) 
+				this.outputNodes = nodes.subList(indexEnd, i);
+	}
+	
+	/**
 	 * Saves the network in a file in the \networks\ folder and a running
 	 * number.
 	 */
@@ -576,7 +598,8 @@ public class NeuralNetwork {
 		return connections;
 	}
 	
-	// Gets the (1-based) index of a given node in the "nodes" array.
+	// Gets the (1-based) index of a given node in the "nodes" array according
+	// to the LAYERED LAYOUT
 	private int getIndex(Node n){
 		// get layer structure
 		ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
@@ -733,5 +756,28 @@ public class NeuralNetwork {
 		ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
 		
 		return toString(hiddenLayers);
+	}
+
+	
+	@Override
+	protected Object clone() {
+		// clone nodes (no connections)
+		ArrayList<Node> newNodes = new ArrayList<Node>(nodes.size());
+		for(Node n : nodes) newNodes.add((Node)n.clone());
+		
+		// connect with new connections similar to existing
+		ArrayList<Connection> newConnections = new ArrayList<Connection>(connections.size());
+		for(Connection c : connections){
+			int start = nodes.indexOf(c.getFromNode());
+			int end = nodes.indexOf(c.getToNode());
+			newConnections.add(new Connection(newNodes.get(start), 
+					newNodes.get(end), 
+					c.getWeight(), 
+					c.isActive(), 
+					c.getInnovationNumber()));
+		}
+		
+		// make new NN with this
+		return new NeuralNetwork(newNodes,newConnections);
 	}
 }

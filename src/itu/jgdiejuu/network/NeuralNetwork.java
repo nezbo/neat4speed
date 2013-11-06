@@ -108,17 +108,17 @@ public class NeuralNetwork {
 				// hook up to previous
 				if(i == 0){ // first layer to input
 					for(int k = 0; k < numInput; k++){
-						connections.add(new Connection(nodes.get(k), curNode, randStart(rand)));
+						connections.add(new Connection(nodes.get(k), curNode, randStart(rand),true));
 					}
 				}else{ // rest to layer before
 					for(int k = 0; k < hiddenLayers[i-1]; k++){
-						connections.add(new Connection(nodes.get(index-k), curNode, randStart(rand)));
+						connections.add(new Connection(nodes.get(index-k), curNode, randStart(rand),true));
 					}
 				}
 				// to output
 				if(i == hiddenLayers.length-1){
 					for(int k = 0; k < numOutput; k++){
-						connections.add(new Connection(curNode, nodes.get(numInput+k), randStart(rand)));
+						connections.add(new Connection(curNode, nodes.get(numInput+k), randStart(rand),true));
 					}
 				}
 			}
@@ -173,6 +173,7 @@ public class NeuralNetwork {
 				int from = conScan.nextInt();
 				int to = conScan.nextInt();
 				String w = conScan.next();
+				int a = conScan.nextInt();
 				double weight = 0;
 				
 				if(isDouble(w)){
@@ -183,7 +184,7 @@ public class NeuralNetwork {
 					System.err.println("Invalid Connection Weight: "+w);
 				}
 				
-				connections.add(new Connection(getNode(from), getNode(to), weight));
+				connections.add(new Connection(getNode(from), getNode(to), weight,a == 1 ? true : false));
 				
 				conScan.close();
 			}
@@ -243,7 +244,7 @@ public class NeuralNetwork {
 				builder.deleteCharAt(builder.length()-1);
 				
 				for(Connection c: connections){
-					builder.append("\n"+getIndex(c.getFromNode())+" "+getIndex(c.getToNode())+" "+c.getWeight());
+					builder.append("\n"+getIndex(c.getFromNode())+" "+getIndex(c.getToNode())+" "+c.getWeight()+" "+(c.isActive() ? "1" : "0"));
 				}
 				writer.write(builder.toString());
 						

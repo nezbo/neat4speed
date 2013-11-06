@@ -213,6 +213,8 @@ public class NeuralNetwork {
 			inputNodes = nodes.subList(0, firstLength);
 			outputNodes = nodes.subList(firstLength, firstLength + lastLength);
 			
+			//nodes.add(4, nodes.remove(nodes.size()-1)); // DEBUG DEBUG DEBUG
+			
 			// close
 			scan.close();
 			topologyScan.close();
@@ -393,8 +395,7 @@ public class NeuralNetwork {
 		for(int j = 0; j < inputNodes.size(); j++){
 			inputNodes.get(j).setInput(trainingInput[j]);
 		}
-		
-		if(DEBUG) System.out.println("Output=");
+
 		boolean match = true;
 		for(int j = 0; j < outputNodes.size(); j++){
 			// forward operation
@@ -403,8 +404,6 @@ public class NeuralNetwork {
 			
 			match = match && (target + MARGIN >= result && target - MARGIN <= result);
 		}
-	
-		if(DEBUG) System.out.println("Result Match: " + match);
 		
 		// output error
 		for(int j = 0; j < outputNodes.size(); j++){
@@ -423,8 +422,6 @@ public class NeuralNetwork {
 			for(Node n : hiddenLayers.get(j)) n.updateBias();
 		}
 		for(Node n : outputNodes) n.updateBias();
-		
-		if(DEBUG) System.out.println(this);
 		
 		return match;
 	}
@@ -607,6 +604,7 @@ public class NeuralNetwork {
 	
 	// Groups the nodes in legal layers and updates the saved structure.
 	private void CalculateLayers() {
+		if(DEBUG) System.out.println("Calculating Layer Structure");
 		ArrayList<ArrayList<Node>> layers = new ArrayList<ArrayList<Node>>();		
 		List<Node> hiddenNodes = nodes.subList(inputNodes.size()+outputNodes.size(), nodes.size()); // NO EDITING!
 		
@@ -614,6 +612,7 @@ public class NeuralNetwork {
 		
 		// take one node at a time and calculate dependencies for already added nodes
 		for(Node n : hiddenNodes){
+			if(DEBUG) System.out.println("Adding node with bias: "+n.getBias());
 			// must be between highest under and lowest over
 			int highestUnder = -1;
 			int lowestOver = layers.size();
@@ -629,20 +628,80 @@ public class NeuralNetwork {
 					highestUnder = position;
 			}
 			
+			if(DEBUG) System.out.println("\thighest under: "+highestUnder+" and lowest over: "+lowestOver);
 			// if under == over insert new layer between
-			if(highestUnder == lowestOver){
+			if(highestUnder + 1 >= lowestOver){
+				
+				if(lowestOver < layers.size()){
+					// get output in layer
+					ArrayList<Node> outInLayer = getOutInLayer(n,layers.get(lowestOver));
+					for(Node o : outInLayer){
+						layers.get(lowestOver).remove(o);
+						addAboveOrNewLayer(o,layers,lowestOver);
+					}
+				}
+				if(DEBUG) System.out.println("\tAdding layer between");
+				
 				ArrayList<Node> newLayer = new ArrayList<Node>();
 				newLayer.add(n);
 				layers.add(highestUnder+1, newLayer);
 			}else{ // else put in under + 1
+				if(DEBUG) System.out.println("\tPutting between");
 				if(highestUnder == layers.size() - 1) layers.add(new ArrayList<Node>());
 				layers.get(highestUnder+1).add(n);
 			}
+			if(DEBUG) System.out.println(printArray(layers));
 		}
 		layerz = layers;
 		lastNumConn = connections.size();
 	}
 	
+	// For debugging the structuring of nodes into layers
+	private String printArray(ArrayList<ArrayList<Node>> layers) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("[");
+		for(ArrayList<Node> l : layers){
+			builder.append("[");
+			for(Node n : l){
+				builder.append(n.getBias()+",");
+			}
+			builder.append("] ");
+		}
+		builder.append("]");
+		return builder.toString();
+	}
+
+	// Adds the node above the given layer or (if a connected node is there, create a new layer between
+	private void addAboveOrNewLayer(Node n, ArrayList<ArrayList<Node>> layers,
+			int above) {
+		
+		// add the given node above the specified layer or create a new layer between.
+		if(layers.size() > above+1 && !(getOutInLayer(n,layers.get(above+1)).size() > 0)){
+			// it is not top layer and it doesnt have an outbound connection in that layer
+			if(DEBUG) System.out.println("\tMoving: "+n.getBias()+" to layer "+(above+1));
+			layers.get(above+1).add(n);
+		}else{ // create new layer
+			if(DEBUG) System.out.println("\tMoving: "+n.getBias()+". Creating new layer");
+			ArrayList<Node> newLayer = new ArrayList<Node>();
+			newLayer.add(n);
+			layers.add(above+1, newLayer);
+		}
+	}
+
+	// Gets a nodes outbound connected neighbors in a given layer
+	private ArrayList<Node> getOutInLayer(Node n, ArrayList<Node> layer){
+		ArrayList<Node> result = new ArrayList<Node>();
+		for(Node o : layer){
+			for(Connection c : n.conn_out){
+				if(c.getToNode() == o){
+					result.add(o);
+				}
+			}				
+		}
+		return result;
+	}
+	
+	// Finds what layer a given node is located in. -1 if not found.
 	// Gets the layer index that a given node is contained in, or -1 of not found.
 	private int getLayer(ArrayList<ArrayList<Node>> layers, Node target){
 		for(int i = 0; i < layers.size(); i++){
@@ -651,11 +710,8 @@ public class NeuralNetwork {
 		return -1;
 	}
 
-	@Override
-	public String toString(){
-		// get layer structure
-		ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
-		
+	// Creates a String from a specific layering of hidden nodes.
+	private String toString(ArrayList<ArrayList<Node>> hiddenLayers){
 		StringBuilder builder = new StringBuilder();
 		builder.append("Input Nodes:\n");
 		for(Node n : inputNodes) nodeToBuilder(n,builder);
@@ -669,5 +725,13 @@ public class NeuralNetwork {
 		for(Node n : outputNodes) nodeToBuilder(n,builder);
 		builder.append("\n");
 		return builder.toString();
+	}
+	
+	@Override
+	public String toString(){
+		// get layer structure
+		ArrayList<ArrayList<Node>> hiddenLayers = UpdateLayers();
+		
+		return toString(hiddenLayers);
 	}
 }

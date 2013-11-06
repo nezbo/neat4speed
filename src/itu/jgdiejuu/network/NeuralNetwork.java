@@ -470,6 +470,7 @@ public class NeuralNetwork {
 		lastNumConn = connections.size();
 	}
 	
+	// For debugging the structuring of nodes into layers
 	private String printArray(ArrayList<ArrayList<Node>> layers) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("[");
@@ -484,6 +485,7 @@ public class NeuralNetwork {
 		return builder.toString();
 	}
 
+	// Adds the node above the given layer or (if a connected node is there, create a new layer between
 	private void addAboveOrNewLayer(Node n, ArrayList<ArrayList<Node>> layers,
 			int above) {
 		
@@ -500,6 +502,7 @@ public class NeuralNetwork {
 		}
 	}
 
+	// Gets a nodes outbound connected neighbors in a given layer
 	private ArrayList<Node> getOutInLayer(Node n, ArrayList<Node> layer){
 		ArrayList<Node> result = new ArrayList<Node>();
 		for(Node o : layer){
@@ -512,6 +515,7 @@ public class NeuralNetwork {
 		return result;
 	}
 	
+	// Finds what layer a given node is located in. -1 if not found.
 	// Gets the layer index that a given node is contained in, or -1 of not found.
 	private int getLayer(ArrayList<ArrayList<Node>> layers, Node target){
 		for(int i = 0; i < layers.size(); i++){
@@ -520,6 +524,7 @@ public class NeuralNetwork {
 		return -1;
 	}
 
+	// Creates a String from a specific layering of hidden nodes.
 	private String toString(ArrayList<ArrayList<Node>> hiddenLayers){
 		StringBuilder builder = new StringBuilder();
 		builder.append("Input Nodes:\n");

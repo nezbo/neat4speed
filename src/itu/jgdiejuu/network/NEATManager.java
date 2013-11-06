@@ -1,10 +1,18 @@
 package itu.jgdiejuu.network;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Random;
 
-public class NEATManager {
+import champ2010client.ClientProgram;
+import champ2010client.NEATforSPEED;
+import champ2010client.SimpleDriver;
 
+public class NEATManager {
+	
+	public static final String TORCS_DIR = "C:\\Program Files (x86)\\torcs";
 	
 	Random r = new Random();
 	ArrayList<NeuralNetwork> population = new ArrayList<NeuralNetwork>();
@@ -72,4 +80,49 @@ public class NEATManager {
 		NEATManager neat = new NEATManager();
 		neat.createInitialPopulation(populationSize, numberOfInputNodes, numberOfOutputNodes);
 	}
+	public int evaluate(NeuralNetwork nn){
+		try {
+			System.out.println(">> Starting Evaluating Neural-Network.");
+			// start game
+	        ProcessBuilder builder = new ProcessBuilder(
+	                "cmd.exe", "/c", "cd \""+TORCS_DIR+"\" && wtorcs.exe -T");
+	        builder.redirectErrorStream(true);
+	        Process pr = builder.start();
+	        
+	        System.out.println(">> Torcs Started.");
+			
+			// wait for output
+			final BufferedReader reader = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+			final ArrayList<String> output = new ArrayList<String>();
+			
+			System.out.println(">> InputStream fetched.");
+			
+			new Thread(new Runnable(){ 
+				String line = null;
+				@Override
+				public void run() {
+	            try {
+					while ((line = reader.readLine()) != null) {
+					    output.add(line);
+					    System.out.println(line);
+					}
+				} catch (IOException e) {}
+				}}).start();
+			
+			System.out.println(">> Thread started for collecting output.");
+            
+			// Run simulation
+			ClientProgram.main(new String[]{"-"}, new SimpleDriver());
+			
+			System.out.println(">> Client started.");
+            
+            // fetch score and return
+			// TODO: Write
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return -1;
+	}
+	
 }

@@ -79,4 +79,9 @@ public class Node {
 	public double getBias() {
 		return bias;
 	}
+
+	@Override
+	protected Object clone(){
+		return new Node(this.getBias(), this.getType());
+	}
 }

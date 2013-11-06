@@ -7,12 +7,14 @@ public class Node {
 	public static double L = 1.0; // learning rate
 	
 	public ArrayList<Connection> conn_in, conn_out;
+	private NodeType type;
 	private double inputValue = 0.0;
 	private double outputValue = 0.0;
 	private double errorValue = 0.0;
 	private double bias = 1.0;
 
-	public Node(double inititalBias){
+	public Node(double inititalBias, NodeType type){
+		this.type = type;
 		bias = inititalBias;
 		conn_in = new ArrayList<Connection>();
 		conn_out = new ArrayList<Connection>();
@@ -24,6 +26,14 @@ public class Node {
 	
 	public double getOutput(){
 		return outputValue;
+	}
+	
+	public NodeType getType(){
+		return type;
+	}
+	
+	public void setType(NodeType newType){
+		type = newType;
 	}
 	
 	public double getError(){

@@ -1,6 +1,6 @@
 package itu.jgdiejuu.network;
 
-public enum NODETYPE {
+public enum NodeType {
 		INPUT,
 		HIDDEN,
 		OUTPUT

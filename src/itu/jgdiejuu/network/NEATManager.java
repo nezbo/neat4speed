@@ -16,7 +16,15 @@ public class NEATManager {
 	
 	Random r = new Random();
 	ArrayList<NeuralNetwork> population = new ArrayList<NeuralNetwork>();
-	public static int innovationNumber = 1;
+	public static int numberOfInputNodes = 3;
+	public static int numberOfOutputNodes = 2;
+	public static int innovationNumber = numberOfInputNodes*numberOfOutputNodes;
+	
+    //mutate rates
+	public final float interspeciesMatingRate = 0.001f;
+	public final float weightMutationRate = 0.8f;
+	public final float newNodeMutationRate = 0.03f;
+	public final float newConnectionMutationRate = 0.05f;
 	
 	//creates a fully connected network of minimal topology-structure (no hidden nodes)
 	public void createInitialPopulation(int populationSize, int inputNodes, int outputNodes){
@@ -27,19 +35,22 @@ public class NEATManager {
 	}
 	
 	//mutates the weight of a ConnectionGene
-	public void weightMutation(Connection c){
-		
+	public void weightMutation(NeuralNetwork nn){
+		nn.weightMutation(innovationNumber);
+		innovationNumber++;
 	}
 	
 	//structural mutation - add a connection between two nodes
-	public void addConnection(Node parent1, Node parent2){
-			
+	public void addConnectionMutation(NeuralNetwork nn){
+		nn.addConnectionMutation(innovationNumber);
+		innovationNumber++;
 	}
 	
-	//RANDOM 
+
 	//structural mutation - add a node
-	public void addNode(NeuralNetwork nn){
-		
+	public void addNodeMutation(NeuralNetwork nn){
+		nn.addNodeMutation(innovationNumber);
+		innovationNumber+=2;
 	}
 	
 	//returns random weight between -1 and 1

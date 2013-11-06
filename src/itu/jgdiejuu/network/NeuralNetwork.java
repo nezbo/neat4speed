@@ -26,6 +26,12 @@ public class NeuralNetwork {
     public static int RESTARTS = 10; // The maximum number of restarts in the demo training.
     public static int LIMIT = 10; // The maximum number of iterations of the training set in the demo training.
     public static boolean DEBUG = false; // Toggle debug output to console.
+	   
+	public final float randomWeightMutationRate = 0.1f;//chance of connection recieving a new random weight
+	public final float uniformlyWeightMutationRate = 0.9f;//chance of weight being uniformly pertubed
+	
+	//Random object
+	Random r = new Random();
 	
 	public static void main(String[] args){
 		
@@ -90,35 +96,38 @@ public class NeuralNetwork {
 	 */
 	public NeuralNetwork(int numInput, int numOutput, int... hiddenLayers){
 		connections = new ArrayList<Connection>();
-		Random rand = new Random();
 		
 		// create tree
 		nodes = new ArrayList<Node>();
 		
 		for(int i = 0; i < numInput; i++) nodes.add(new Node(0.0, NodeType.INPUT));
 		inputNodes = nodes.subList(0, nodes.size());
-		for(int i = 0; i < numOutput; i++) nodes.add(new Node(randStart(rand), NodeType.OUTPUT));
+		for(int i = 0; i < numOutput; i++) nodes.add(new Node(randStart(), NodeType.OUTPUT));
 		outputNodes = nodes.subList(numInput, nodes.size());
 		int index = numInput + numOutput;
 		
+		int tempInnovationNumber = 0;
 		for(int i = 0; i < hiddenLayers.length; i++){
 			for(int j = 0; j < hiddenLayers[i]; j++){
-				Node curNode = new Node(randStart(rand), NodeType.HIDDEN);
+				Node curNode = new Node(randStart(), NodeType.HIDDEN);
 				nodes.add(curNode);
 				// hook up to previous
 				if(i == 0){ // first layer to input
 					for(int k = 0; k < numInput; k++){
-						connections.add(new Connection(nodes.get(k), curNode, randStart(rand),true));
+						connections.add(new Connection(nodes.get(k), curNode, randStart(),true, tempInnovationNumber));
+						tempInnovationNumber++;
 					}
 				}else{ // rest to layer before
 					for(int k = 0; k < hiddenLayers[i-1]; k++){
-						connections.add(new Connection(nodes.get(index-k), curNode, randStart(rand),true));
+						connections.add(new Connection(nodes.get(index-k), curNode, randStart(),true, tempInnovationNumber));
+						tempInnovationNumber++;
 					}
 				}
 				// to output
 				if(i == hiddenLayers.length-1){
 					for(int k = 0; k < numOutput; k++){
-						connections.add(new Connection(curNode, nodes.get(numInput+k), randStart(rand),true));
+						connections.add(new Connection(curNode, nodes.get(numInput+k), randStart(),true, tempInnovationNumber));
+						tempInnovationNumber++;
 					}
 				}
 			}
@@ -157,7 +166,7 @@ public class NeuralNetwork {
 					if(isDouble(s)){
 						nodes.add(new Node(Double.parseDouble(s),type));
 					}else{
-						nodes.add(new Node(randStart(rand), type));
+						nodes.add(new Node(randStart(), type));
 					}
 				}
 				
@@ -165,6 +174,7 @@ public class NeuralNetwork {
 			}
 
 			//for all connections
+			int tempInnovationNumber = 0;
 			while(scan.hasNextLine()){
 
 				String con = scan.nextLine();
@@ -179,14 +189,15 @@ public class NeuralNetwork {
 				if(isDouble(w)){
 					weight = Double.parseDouble(w);
 				}else if(w.equals("r")){
-					weight = randStart(rand);
+					weight = randStart();
 				}else{
 					System.err.println("Invalid Connection Weight: "+w);
 				}
 				
-				connections.add(new Connection(getNode(from), getNode(to), weight,a == 1 ? true : false));
+				connections.add(new Connection(getNode(from), getNode(to), weight,a == 1 ? true : false, tempInnovationNumber));
 				
 				conScan.close();
+				tempInnovationNumber++;
 			}
 			
 			// move output nodes to after input
@@ -280,6 +291,96 @@ public class NeuralNetwork {
 	}
 	
 	/**
+	 * mutates the weight of most connections based on mutation rates.
+	 * the mutation will either add or subtract a constant or set weight 
+	 * to a new random weight between -1 and 1.
+	 */
+	public void weightMutation(int innovationNumber){
+		
+		double weightChange = 0.02;
+		
+		for(Connection c: connections){
+			float randomFloat = r.nextFloat();
+			
+			if(randomFloat < uniformlyWeightMutationRate){
+				c.setWeight(randStart());
+			}
+
+			if(randomFloat < randomWeightMutationRate && randomFloat > 0.5){
+				c.setWeight(c.getWeight()+weightChange);
+			}else if(randomFloat < randomWeightMutationRate && randomFloat < 0.5){
+				c.setWeight(c.getWeight()-weightChange);
+			}
+		}
+	}
+	
+	/**
+	 * Adds a legal connection between two random nodes in the network
+	 * Nothing happens if no legal connection can be added
+	 * @param innovationNumber to be assigned to the newly created connection
+	 */
+	public void addConnectionMutation(int innovationNumber){
+		
+		//clone nodes. these nodes represent "unchecked" nodes
+		ArrayList<Node> nodesToBeChecked = new ArrayList<Node>(nodes);
+		ArrayList<Node> nodesToBeRemoved = new ArrayList<Node>();
+		
+		//find the first node and remove it from nodesToBeChecked
+		//if firstNode is output - pick again 
+
+		Node fromNode = nodesToBeChecked.get(r.nextInt(nodes.size()));
+		while(fromNode.getType() == NodeType.OUTPUT){
+			fromNode = nodesToBeChecked.get(r.nextInt(nodes.size()));
+		}
+		nodesToBeChecked.remove(fromNode);
+		
+		//get all nodes already connected to firstNode
+		//and remove them from nodesToBeChecked
+		for(Connection c: fromNode.conn_out){
+				nodesToBeChecked.remove(c.getToNode());
+		}
+		for(Connection c: fromNode.conn_in){
+			nodesToBeChecked.remove(c.getFromNode());
+		}
+		
+		//remove all inputNodes (connection can't go backwards from hidden to input)
+		for(Node n: nodesToBeChecked){
+			if(n.getType() == NodeType.INPUT){
+				nodesToBeRemoved.add(n);
+			}
+		}
+		for(Node n: nodesToBeRemoved){
+			nodesToBeChecked.remove(n);
+		}
+		//pick random node - all of them shound be legal
+		Node toNode = nodesToBeChecked.get(r.nextInt(nodesToBeChecked.size()));
+		
+		//create the new connection and add it to connections and Node.in/out
+		Connection newCon = new Connection(fromNode, toNode, randStart(), true, innovationNumber);
+		connections.add(newCon);
+		fromNode.conn_out.add(newCon);
+		toNode.conn_in.add(newCon);
+	}
+	
+	/**
+	 * Adds a node in the network at a random connection
+	 * The old connection is disabled (inactive) and two new connections are created
+	 * connection the new node to the former input and output.
+	 * @param innovationNumber to be assigned to the newly created connection
+	 */
+	public void addNodeMutation(int innovationNumber){
+		
+		Connection toBeReplaced = connections.get(r.nextInt(connections.size()));
+		Node oldFrom = toBeReplaced.getFromNode();
+		Node oldTo = toBeReplaced.getToNode();
+		toBeReplaced.setActive(false);
+		Node newNode = new Node(randStart(), NodeType.HIDDEN);
+		Connection newIn = new Connection(oldFrom, newNode, randStart(), true, innovationNumber);
+		Connection newout = new Connection(newNode, oldTo, randStart(), true, innovationNumber+1);
+		
+	}
+	
+	/**
 	 * Performs supervised training using backpropagation on the network with the
 	 * given input and expected output pair for error calculation.
 	 * @param trainingInput An array containing an input value for each input node.
@@ -361,6 +462,86 @@ public class NeuralNetwork {
 		return allCorrect;
 	}
 	
+	/**
+	 * Compares two neural networks to get their compatibility distance.
+	 * The compatibility distance is used to determine how "similar" the 
+	 * topology of the two networks are.
+	 * @param The "other" network to test against.
+	 * @return a double denoting how much "genetic history" the two networks share.
+	 */
+	public double getCompatibilityDistance(NeuralNetwork other){
+		
+		//constants and avgW
+		float C1 = 1;
+		float C2 = 1;
+		float C3 = 1;
+		double avgWD = 0;
+		int N = 1;
+		int disjoints = 0;
+		int excess = 0;
+		
+		//get connections
+		ArrayList<Connection> othersGenes = other.getConnections();
+		
+		//avgW for this
+		int avgWthis = 0;
+		for(Connection c: connections){
+			avgWthis += c.getWeight();
+		}
+		avgWthis /= connections.size();
+		
+		//avgW for other
+		int avgWother = 0;
+		for(Connection c: othersGenes){
+			avgWother += c.getWeight();
+		}
+		avgWother /= othersGenes.size();
+		
+		//average weight distance
+		avgWD = Math.abs(avgWthis-avgWother);
+				
+		int max = Math.max(connections.size(), othersGenes.size());
+		
+		//if both genomes are smaller than 20 N=1 else N=max
+		if(max > 20){
+			N = max;
+		}
+		
+		//get number of excess
+		int maxIN = Math.max(connections.get(connections.size()-1).getInnovationNumber(), othersGenes.get(othersGenes.size()-1).getInnovationNumber());
+		int minIN = Math.min(connections.get(connections.size()-1).getInnovationNumber(), othersGenes.get(othersGenes.size()-1).getInnovationNumber());
+		
+		excess = maxIN - minIN;
+		
+		//get number of disjoints
+		int[] cArray1 = this.getCompatibilityArray();
+		int[] cArray2 = other.getCompatibilityArray();
+		
+		for(int i = minIN-1; i <= 0; i++){
+			if(cArray1[i] != cArray2[i]){
+				disjoints++;
+			}
+		}
+		
+		return (C1*excess)+(C2*disjoints)+(C2*avgWD);
+	}
+	
+	/**
+	 * @return An integer array that is sorted so that each connection is placed at the index corresponding to it's innovationNumber. "Empty" indexes will ahve a value of -1.
+	 */
+	public int[] getCompatibilityArray(){
+		
+		int iNumber = connections.get(connections.size()-1).getInnovationNumber();
+		int[] compatibilityArray = new int[iNumber];
+		for(int i = 0; i < iNumber; i++){
+			compatibilityArray[i] = -1;
+		}
+		for(Connection c: connections){
+			compatibilityArray[c.getInnovationNumber()] = c.getInnovationNumber();
+		}
+		return compatibilityArray;
+	}
+
 	// Adds the information of the current node to the StringBuilder.
 	private void nodeToBuilder(Node n, StringBuilder builder){
 		builder.append(getIndex(n)+": bias="+n.getBias()+"\n");
@@ -381,13 +562,18 @@ public class NeuralNetwork {
 	}
 	
 	// Creates a random value between -1.0 and 1.0 using the given Random object.
-	private double randStart(Random rand){
-		return (rand.nextDouble()*2.0)-1.0;
+	private double randStart(){
+		return (r.nextDouble() + r.nextDouble())-1.0;
 	}
 	
 	// Gets the node at the given index. BEFORE output nodes 
 	private Node getNode(int index){
 		return nodes.get(index-1);
+	}
+	
+	// Gets the connections-ArrayList of this network 
+	public ArrayList<Connection> getConnections(){
+		return connections;
 	}
 	
 	// Gets the (1-based) index of a given node in the "nodes" array.

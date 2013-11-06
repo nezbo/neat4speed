@@ -8,9 +8,13 @@ public class NEATManager {
 	
 	Random r = new Random();
 	ArrayList<NeuralNetwork> population = new ArrayList<NeuralNetwork>();
-	public static int numberOfInputNodes = 3;
-	public static int numberOfOutputNodes = 2;
-	public static int innovationNumber = numberOfInputNodes*numberOfOutputNodes;
+	
+	//initial population parameters
+	private static final int numberOfInputNodes = 3;
+	private static final int numberOfOutputNodes = 2;
+	private static final int populationSize = 100;
+	private static int innovationNumber = numberOfInputNodes*numberOfOutputNodes;
+	private static final int TOP_POPULATION = 5;
 	
     //mutate rates
 	public final float interspeciesMatingRate = 0.001f;
@@ -55,4 +59,17 @@ public class NEATManager {
 		return -1 + (r.nextDouble()+r.nextDouble());
 	}
 	
+	public void evaluateGeneration(){
+		
+	}
+	
+	public void produceNextGeneration(){
+		
+	}
+	
+	//launchpoint
+	public static void main(String[] args){
+		NEATManager neat = new NEATManager();
+		neat.createInitialPopulation(populationSize, numberOfInputNodes, numberOfOutputNodes);
+	}
 }

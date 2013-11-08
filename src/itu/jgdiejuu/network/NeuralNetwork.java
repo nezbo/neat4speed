@@ -30,6 +30,8 @@ public class NeuralNetwork {
 	public final float randomWeightMutationRate = 0.1f;//chance of connection recieving a new random weight
 	public final float uniformlyWeightMutationRate = 0.9f;//chance of weight being uniformly pertubed
 	
+	private double fitness;
+	
 	//Random object
 	Random r = new Random();
 	
@@ -448,6 +450,60 @@ public class NeuralNetwork {
 		return match;
 	}
 
+	
+	public NeuralNetwork crossover(NeuralNetwork other){
+		
+		NeuralNetwork mostFit;
+		NeuralNetwork leastFit;
+			
+		if(fitness > other.getFitness()){
+			mostFit = (NeuralNetwork) this.clone();
+			leastFit = (NeuralNetwork) other.clone();
+		}else {
+			mostFit = (NeuralNetwork) other.clone();
+			leastFit = (NeuralNetwork) this.clone();
+		}
+			
+		int max = Math.max(connections.get(connections.size()-1).getInnovationNumber(), 
+								other.getConnections().get(other.getConnections().size()-1).getInnovationNumber());
+			
+		ArrayList<Connection> mostFitGene = mostFit.getCompatibilityArrayList(max);
+		ArrayList<Connection> leastFitGene = leastFit.getCompatibilityArrayList(max);
+			
+		//create connections and nodes
+		ArrayList<Connection> offspringConnections = new ArrayList<Connection>();
+		ArrayList<Node> offspringNodes = new ArrayList<Node>();
+		//for each connection gene
+		for(int i = 0; i < max; i++){
+			Connection selectedGene = null;	
+			//if NOT disjoint or excess
+			if((mostFitGene.get(i) != null && leastFitGene.get(i) != null) || fitness != other.getFitness()){					
+				//random pick
+				if(r.nextFloat() > 0.5){
+					selectedGene = mostFitGene.get(i);
+				}else{
+					selectedGene = leastFitGene.get(i);
+				}			
+				//if disjoint or excess
+			}else if(mostFitGene.get(i) == null || leastFitGene.get(i) == null){
+				selectedGene = mostFitGene.get(i);
+			}
+				
+			//add connection
+			offspringConnections.add(selectedGene);
+			//add nodes
+			if(!offspringNodes.contains(selectedGene.getFromNode())){
+				offspringNodes.add(selectedGene.getFromNode());
+			}
+			if(!offspringNodes.contains(selectedGene.getToNode())){
+				offspringNodes.add(selectedGene.getToNode());
+			}	
+		}
+
+		return new NeuralNetwork(offspringNodes,offspringConnections);
+		
+	}
+	
 	/**
 	 * Performs supervised training using backpropagation on the network the the 
 	 * given training set.
@@ -549,7 +605,8 @@ public class NeuralNetwork {
 	}
 	
 	/**
-	 * @return An integer array that is sorted so that each connection is placed at the index corresponding to it's innovationNumber. "Empty" indexes will ahve a value of -1.
+	 * @return An integer array that is sorted so that each connection is placed at the index corresponding to it's innovationNumber. 
+	 * "Empty" indexes will ahve a value of -1.
 	 */
 	public int[] getCompatibilityArray(){
 		
@@ -564,6 +621,61 @@ public class NeuralNetwork {
 		return compatibilityArray;
 	}
 
+	
+	/**
+	 * @param Size of the array to be returned.
+	 * @return An integer array that is sorted so that each connection is placed at the index corresponding to it's innovationNumber. 
+	 * "Empty" indexes will ahve a value of -1.
+	 */
+	public int[] getCompatibilityArray(int size){
+		
+		int iNumber = connections.get(connections.size()-1).getInnovationNumber();
+		if(iNumber > size){
+			throw new RuntimeException();
+		}
+		int[] compatibilityArray = new int[size];
+		for(int i = 0; i < iNumber; i++){
+			compatibilityArray[i] = -1;
+		}
+		for(Connection c: connections){
+			compatibilityArray[c.getInnovationNumber()] = c.getInnovationNumber();
+		}
+		return compatibilityArray;
+	}
+	
+	/**
+	 * @return an arrayList with connections placed according to their innovationNumber. null-values are found on "empty" indexes
+	 */
+	public ArrayList<Connection> getCompatibilityArrayList(){
+		
+		int iNumber = connections.get(connections.size()-1).getInnovationNumber();
+		ArrayList<Connection> compatibilityArray = new ArrayList<Connection>();
+		
+		for(int i = 0; i < iNumber; i++){
+			compatibilityArray.add(null);
+		}
+		for(Connection c: connections){
+			compatibilityArray.add(c.getInnovationNumber(), c.clone());
+		}
+		return compatibilityArray;
+	}
+	
+	/**
+	 * @return an arrayList with connections placed according to their innovationNumber. null-values are found on "empty" indexes
+	 */
+	public ArrayList<Connection> getCompatibilityArrayList(int size){
+		
+		ArrayList<Connection> compatibilityArray = new ArrayList<Connection>();
+		
+		for(int i = 0; i < size; i++){
+			compatibilityArray.add(null);
+		}
+		for(Connection c: connections){
+			compatibilityArray.add(c.getInnovationNumber(), c.clone());
+		}
+		return compatibilityArray;
+	}
+	
 	// Adds the information of the current node to the StringBuilder.
 	private void nodeToBuilder(Node n, StringBuilder builder){
 		builder.append(getIndex(n)+": bias="+n.getBias()+"\n");
@@ -591,6 +703,16 @@ public class NeuralNetwork {
 	// Gets the node at the given index. BEFORE output nodes 
 	private Node getNode(int index){
 		return nodes.get(index-1);
+	}
+	
+	//get the fitnessvalue
+	public double getFitness(){
+		return fitness;
+	}
+	
+	//set the fitnessvalue
+	public void setFitness(double fitness){
+		this.fitness = fitness;
 	}
 	
 	// Gets the connections-ArrayList of this network 
